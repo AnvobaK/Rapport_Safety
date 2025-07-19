@@ -196,14 +196,13 @@ const DeleteOverlay = ({
 };
 
 const SettingsScreen = () => {
-  const [anonymousMode, setAnonymousMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigation = useNavigation();
 
   // Get theme and preferences from context
-  const { isDarkMode, setDarkMode } = useUserPreferences();
+  const { isDarkMode, setDarkMode, isAnonymous, setIsAnonymous } = useUserPreferences();
   const theme = getTheme(isDarkMode);
 
   // Get profile data from context
@@ -355,8 +354,8 @@ const SettingsScreen = () => {
               title="Anonymous"
               subtitle="Stay hidden or seen"
               hasToggle={true}
-              toggleValue={anonymousMode}
-              onToggleChange={setAnonymousMode}
+              toggleValue={isAnonymous}
+              onToggleChange={setIsAnonymous}
               hasArrow={false}
             />
 

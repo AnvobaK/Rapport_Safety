@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Posts: anyone authenticated can read, only owner can write/delete
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+      // Comments: anyone authenticated can comment
+      match /comments/{commentId} {
+        allow read, create: if request.auth != null;
+        allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+      }
+    }
+    // SOS Alerts: only owner and admins can read/write
+    match /sos_alerts/{alertId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
+    }
+    // Locations: only owner can write, anyone can read (for map)
+    match /locations/{locationId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    // Chats: only members can read/write
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
+      }
+    }
+    // Reports: only admins can read/write
+    match /reports/{reportId} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+} 

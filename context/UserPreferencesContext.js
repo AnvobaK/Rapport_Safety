@@ -8,6 +8,7 @@ export function UserPreferencesProvider({ children }) {
     useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnonymous, setIsAnonymousState] = useState(false);
 
   useEffect(() => {
     loadUserPreferences();
@@ -15,13 +16,15 @@ export function UserPreferencesProvider({ children }) {
 
   const loadUserPreferences = async () => {
     try {
-      const [hasAgreed, darkMode] = await Promise.all([
+      const [hasAgreed, darkMode, anon] = await Promise.all([
         AsyncStorage.getItem("hasAgreedToCommunityRules"),
         AsyncStorage.getItem("isDarkMode"),
+        AsyncStorage.getItem("isAnonymous"),
       ]);
 
       setHasAgreedToCommunityRules(hasAgreed === "true");
       setIsDarkMode(darkMode !== "false"); // Default to true (dark mode) if not set
+      setIsAnonymousState(anon === "true");
     } catch (error) {
       console.error("Error loading user preferences:", error);
     } finally {
@@ -50,6 +53,15 @@ export function UserPreferencesProvider({ children }) {
     }
   };
 
+  const setIsAnonymous = async (value) => {
+    try {
+      await AsyncStorage.setItem("isAnonymous", value.toString());
+      setIsAnonymousState(value);
+    } catch (error) {
+      console.error("Error saving anonymous preference:", error);
+    }
+  };
+
   const resetCommunityRulesAgreement = async () => {
     try {
       await AsyncStorage.removeItem("hasAgreedToCommunityRules");
@@ -67,6 +79,8 @@ export function UserPreferencesProvider({ children }) {
         resetCommunityRulesAgreement,
         isDarkMode,
         setDarkMode,
+        isAnonymous,
+        setIsAnonymous,
         isLoading,
       }}
     >

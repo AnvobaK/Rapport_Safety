@@ -26,7 +26,7 @@ import TermsConditionsPage from "./pages/TermsandConditions";
 import PrivacyPolicyPage from "./pages/PrivacyPolicy";
 import FAQScreen from "./pages/HelpandSupport";
 import CommunityRulesScreen from "./pages/CommunityRulesScreen";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ContactsScreen from "./pages/ContactPage";
 import InitialChatScreen from "./pages/InitialChatScreen";
@@ -39,6 +39,11 @@ import { GlobalChatProvider } from "./context/GlobalChatContext";
 import CreateGroupScreen from "./pages/CreateGroupScreen";
 import { GroupsProvider } from "./context/GroupsContext";
 import GroupChatScreen from "./pages/GroupChatScreen";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
+import { db, auth } from "./firebase";
+import { doc, setDoc } from "firebase/firestore";
+
 const Stack = createNativeStackNavigator();
 
 function RootStack() {
@@ -194,7 +199,45 @@ function RootStack() {
   );
 }
 
+async function registerForPushNotificationsAsync() {
+  let token;
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    alert('Failed to get push token for push notification!');
+    return null;
+  }
+  token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log('Expo Push Token:', token);
+  return token;
+}
+
 export default function App() {
+  useEffect(() => {
+    const savePushToken = async () => {
+      if (auth.currentUser) {
+        const token = await registerForPushNotificationsAsync();
+        if (token) {
+          const userDoc = doc(db, 'users', auth.currentUser.uid);
+          await setDoc(userDoc, { expoPushToken: token }, { merge: true });
+        }
+      }
+    };
+    savePushToken();
+  }, [auth.currentUser]);
+
   return (
     <GroupsProvider>
       <UserPreferencesProvider>

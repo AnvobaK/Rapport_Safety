@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,10 @@ import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
 import HeaderWithBack from "../components/Headerwithbackbutton";
 import { useUserPreferences } from "../context/UserPreferencesContext";
 import { getTheme } from "../context/theme";
+import { db, auth, storage } from "../firebase";
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment, runTransaction, getDocs } from "firebase/firestore";
+import { getDownloadURL } from "firebase/storage";
+import * as ImagePicker from "expo-image-picker";
 
 // Posts data structure
 const POSTS_DATA = [
@@ -199,7 +203,12 @@ const CommunityPage = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [savedPosts, setSavedPosts] = useState(new Set());
-  const [posts, setPosts] = useState(POSTS_DATA);
+  const [posts, setPosts] = useState([]);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [newPostImage, setNewPostImage] = useState(null);
+  const { isAnonymous } = useUserPreferences();
+  const [commentText, setCommentText] = useState("");
+  const [selectedPostId, setSelectedPostId] = useState(null);
   const [filterAnimation] = useState(new Animated.Value(0));
 
   // Get theme from context
@@ -209,7 +218,6 @@ const CommunityPage = ({ navigation }) => {
   // Comment states
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState({
     1: [
       {
@@ -260,6 +268,95 @@ const CommunityPage = ({ navigation }) => {
       },
     ],
   });
+
+  // Fetch posts in real-time
+  useEffect(() => {
+    try {
+      const q = query(collection(db, "posts")); // Temporarily remove orderBy for debugging
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const postsArr = [];
+        querySnapshot.forEach((doc) => {
+          postsArr.push({ id: doc.id, ...doc.data() });
+        });
+        console.log("Fetched posts:", postsArr);
+        setPosts(postsArr);
+      }, (error) => {
+        console.error("Firestore onSnapshot error:", error);
+      });
+      return unsubscribe;
+    } catch (err) {
+      console.error("Firestore useEffect error:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    getDocs(collection(db, "posts"))
+      .then(snapshot => {
+        console.log("Test getDocs:", snapshot.docs.map(doc => doc.data()));
+      })
+      .catch(err => {
+        console.error("Test getDocs error:", err);
+      });
+  }, []);
+
+  // Create a new post
+  const handleCreatePost = async () => {
+    let imageUrl = "";
+    if (newPostImage) {
+      // Upload image to Firebase Storage
+      const response = await fetch(newPostImage);
+      const blob = await response.blob();
+      const imageRef = ref(storage, `posts/${Date.now()}_${auth.currentUser.uid}.jpg`);
+      await uploadBytes(imageRef, blob);
+      imageUrl = await getDownloadURL(imageRef);
+    }
+    await addDoc(collection(db, "posts"), {
+      authorId: auth.currentUser.uid,
+      content: newPostContent,
+      imageUrl,
+      isAnonymous,
+      createdAt: serverTimestamp(),
+      likes: 0,
+      reactions: {},
+    });
+    setNewPostContent("");
+    setNewPostImage(null);
+  };
+
+  // Add a comment to a post
+  const handleAddComment = async (postId) => {
+    await addDoc(collection(db, "posts", postId, "comments"), {
+      authorId: auth.currentUser.uid,
+      content: commentText,
+      createdAt: serverTimestamp(),
+    });
+    setCommentText("");
+    setSelectedPostId(null);
+  };
+
+  // Like a post (transaction)
+  const handleLike = async (postId) => {
+    const postRef = doc(db, "posts", postId);
+    await runTransaction(db, async (transaction) => {
+      const postDoc = await transaction.get(postRef);
+      if (!postDoc.exists()) return;
+      const newLikes = (postDoc.data().likes || 0) + 1;
+      transaction.update(postRef, { likes: newLikes });
+    });
+  };
+
+  // Pick image for post
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setNewPostImage(result.assets[0].uri);
+    }
+  };
 
   // Get all unique tags from posts
   const allTags = React.useMemo(() => {
@@ -320,45 +417,10 @@ const CommunityPage = ({ navigation }) => {
     setSelectedTags([]);
   };
 
-  const handleLike = (postId) => {
-    setLikedPosts((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
-      }
-      return newSet;
-    });
-  };
-
   const handleComment = (postId) => {
     const post = posts.find((p) => p.id === postId);
     setSelectedPost(post);
     setCommentModalVisible(true);
-  };
-
-  const handleAddComment = () => {
-    if (!commentText.trim() || !selectedPost) return;
-
-    const newComment = {
-      id: Date.now().toString(),
-      text: commentText.trim(),
-      user: {
-        name: "You",
-        handle: "@you",
-        avatar: require("../images/photo1.jpg"),
-      },
-      timestamp: "Just now",
-      likes: 0,
-    };
-
-    setComments((prev) => ({
-      ...prev,
-      [selectedPost.id]: [newComment, ...(prev[selectedPost.id] || [])],
-    }));
-
-    setCommentText("");
   };
 
   const closeCommentModal = () => {
@@ -1133,7 +1195,7 @@ const CommunityPage = ({ navigation }) => {
                       backgroundColor: theme.secondaryBorder,
                     },
                   ]}
-                  onPress={handleAddComment}
+                  onPress={() => handleAddComment(selectedPostId)}
                   disabled={!commentText.trim()}
                 >
                   <Text

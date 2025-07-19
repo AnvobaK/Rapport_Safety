@@ -8,11 +8,17 @@ import {
   Easing,
   Dimensions,
   SafeAreaView,
+  Alert,
+  Platform,
+  PermissionsAndroid,
 } from "react-native";
 import { Ionicons, Entypo } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUserPreferences } from "../context/UserPreferencesContext";
 import { getTheme } from "../context/theme";
+import { useUserContext } from "../context/userContext";
+import * as Location from "expo-location";
+import { PorcupineManager } from "@picovoice/porcupine-react-native";
 
 const SOSScreen = () => {
   const [activated, setActivated] = useState(true);
@@ -20,11 +26,70 @@ const SOSScreen = () => {
   const rotateAnim = new Animated.Value(0);
   const { isDarkMode } = useUserPreferences();
   const theme = getTheme(isDarkMode);
+  const { profileData } = useUserContext();
+  const [porcupineManager, setPorcupineManager] = useState(null);
+  const [isListening, setIsListening] = useState(false);
+
+  const ACCESS_KEY = "YOUR_PICOVOICE_ACCESS_KEY"; // Replace with your real key
+  const KEYWORD_PATH =
+    Platform.OS === "ios"
+      ? "assets/porcupine/blueberry_ios.ppn"
+      : "assets/porcupine/Blueberry_en_android_v3_0_0.ppn";
+
+  // Microphone permission request
+  async function requestMicrophonePermission() {
+    if (Platform.OS === "android") {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        {
+          title: "Microphone Permission",
+          message: "This app needs access to your microphone for wake word detection.",
+          buttonNeutral: "Ask Me Later",
+          buttonNegative: "Cancel",
+          buttonPositive: "OK",
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    // iOS handled by Info.plist
+    return true;
+  }
+
+  useEffect(() => {
+    async function startPorcupine() {
+      const hasPermission = await requestMicrophonePermission();
+      if (!hasPermission) {
+        Alert.alert("Microphone permission denied");
+        return;
+      }
+      PorcupineManager.fromKeywordPaths(
+        ACCESS_KEY,
+        [KEYWORD_PATH],
+        (keywordIndex) => {
+          handleSOSPress();
+        }
+      ).then((manager) => {
+        setPorcupineManager(manager);
+        manager.start();
+        setIsListening(true);
+      }).catch((err) => {
+        Alert.alert("Porcupine error", err.message || String(err));
+      });
+    }
+    startPorcupine();
+    return () => {
+      if (porcupineManager) {
+        porcupineManager.stop();
+        porcupineManager.delete();
+        setIsListening(false);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Start animations when activated
   useEffect(() => {
     if (activated) {
-      // Create pulse animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -41,8 +106,6 @@ const SOSScreen = () => {
           }),
         ])
       ).start();
-
-      // Create rotation animation
       Animated.loop(
         Animated.timing(rotateAnim, {
           toValue: 1,
@@ -52,13 +115,11 @@ const SOSScreen = () => {
         })
       ).start();
     } else {
-      // Reset animations
       pulseAnim.setValue(1);
       rotateAnim.setValue(0);
     }
   }, [activated]);
 
-  // Convert rotation value to degrees
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
@@ -66,26 +127,48 @@ const SOSScreen = () => {
 
   const navigation = useNavigation();
 
-  const handleSOSPress = () => {
+  const handleSOSPress = async () => {
     setActivated(true);
+    try {
+      // Get current location
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Location permission is required to send an SOS alert.");
+        return;
+      }
+      let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const location = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      };
+      // Send POST request to Vercel endpoint
+      await fetch("https://rapport-safety.vercel.app/api/send-sos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: profileData.firstName + " " + profileData.lastName,
+          location,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      alert("SOS alert sent to security!");
+    } catch (error) {
+      alert("Failed to send SOS alert: " + error.message);
+    }
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.primaryBackground }]}
-    >
-      <View
-        style={[styles.container, { backgroundColor: theme.primaryBackground }]}
-      >
-        {/* Main content area */}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.primaryBackground }]}> 
+      <View style={[styles.container, { backgroundColor: theme.primaryBackground }]}> 
         <View style={styles.content}>
-          {activated && (
-            <Text style={[styles.activatedText, { color: theme.error }]}>
-              Button Activated
+          {isListening && (
+            <Text style={{ color: 'green', marginBottom: 10 }}>
+              Listening for wake word...
             </Text>
           )}
-
-          {/* SOS Button with animations */}
+          {activated && (
+            <Text style={[styles.activatedText, { color: theme.error }]}>Button Activated</Text>
+          )}
           <View style={styles.sosButtonContainer}>
             {activated && (
               <>
@@ -123,69 +206,30 @@ const SOSScreen = () => {
               onPress={handleSOSPress}
               activeOpacity={0.8}
             >
-              <Text
-                style={[styles.sosText, { color: theme.primaryBackground }]}
-              >
-                SOS
-              </Text>
+              <Text style={[styles.sosText, { color: theme.primaryBackground }]}>SOS</Text>
             </TouchableOpacity>
           </View>
-
           {activated && (
-            <View
-              style={[
-                styles.safeWordContainer,
-                { backgroundColor: theme.cardBackground },
-              ]}
-            >
+            <View style={[styles.safeWordContainer, { backgroundColor: theme.cardBackground }]}> 
               <View style={styles.safeWordHeader}>
                 <Ionicons name="mic" size={20} color={theme.accentIcon} />
-                <Text
-                  style={[styles.safeWordTitle, { color: theme.primaryText }]}
-                >
-                  Your Safe Word
+                <Text style={[styles.safeWordTitle, { color: theme.primaryText }]}>Your Safe Word</Text>
+              </View>
+              <View style={[styles.safeWordBox, { backgroundColor: theme.secondaryBackground }]}> 
+                <Text style={[styles.safeWordText, { color: theme.primaryText }]}>Your safe word is{" "}
+                  <Text style={[styles.blueberryText, { color: theme.accentText }]}>Blueberry</Text>
                 </Text>
               </View>
-
-              <View
-                style={[
-                  styles.safeWordBox,
-                  { backgroundColor: theme.secondaryBackground },
-                ]}
-              >
-                <Text
-                  style={[styles.safeWordText, { color: theme.primaryText }]}
-                >
-                  Your safe word is{" "}
-                  <Text
-                    style={[styles.blueberryText, { color: theme.accentText }]}
-                  >
-                    Blueberry
-                  </Text>
-                </Text>
-              </View>
-
               <View style={styles.warningContainer}>
                 <Ionicons name="alert-circle" size={20} color={theme.error} />
-                <Text
-                  style={[styles.warningText, { color: theme.secondaryText }]}
-                >
-                  When this word is recorded, a message containing your general
-                  details will be sent to security services.
-                </Text>
+                <Text style={[styles.warningText, { color: theme.secondaryText }]}>When this word is recorded, a message containing your general details will be sent to security services.</Text>
               </View>
             </View>
           )}
-
           {activated && (
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => navigation.goBack()}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
               <Entypo name="cross" size={24} color={theme.error} />
-              <Text style={[styles.cancelText, { color: theme.error }]}>
-                Cancel
-              </Text>
+              <Text style={[styles.cancelText, { color: theme.error }]}>Cancel</Text>
             </TouchableOpacity>
           )}
         </View>

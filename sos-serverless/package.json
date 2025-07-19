@@ -1,0 +1,13 @@
+{
+  "name": "sos-serverless",
+  "version": "1.0.0",
+  "main": "api/send-sos.js",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@picovoice/porcupine-react-native": "^3.0.4",
+    "@picovoice/react-native-voice-processor": "^1.2.3",
+    "@sendgrid/mail": "^8.1.5"
+  }
+}
