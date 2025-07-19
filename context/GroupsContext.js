@@ -43,7 +43,9 @@ export const GroupsProvider = ({ children }) => {
   const getGroup = (groupId) => groups.find((g) => g.id === groupId);
 
   return (
-    <GroupsContext.Provider value={{ groups, addGroup, sendMessage, getGroup }}>
+    <GroupsContext.Provider
+      value={{ groups, setGroups, addGroup, sendMessage, getGroup }}
+    >
       {children}
     </GroupsContext.Provider>
   );

@@ -43,7 +43,7 @@ export default function SelectRoleScreen() {
 
   const handleNext = () => {
     if (selectedRole) {
-      navigation.navigate("SignUpForm");
+      navigation.navigate("SignUpForm", { role: selectedRole });
     }
   };
 

@@ -20,6 +20,7 @@ import CommunityPage from "../pages/CommunityPage";
 import CommunityRulesScreen from "../pages/CommunityRulesScreen";
 import InitialChatScreen from "../pages/InitialChatScreen";
 import SOSPage from "../pages/SOSPage";
+import ChatStack from "./ChatStack";
 
 const Tab = createBottomTabNavigator();
 const { width: screenWidth } = Dimensions.get("window");
@@ -151,7 +152,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                   {
                     transform: [{ scale: animatedValues[index] }],
                     opacity: opacityValues[index],
-                    backgroundColor: theme.error,
+                    backgroundColor: "#F23F42",
                     shadowColor: theme.error,
                   },
                 ]}
@@ -338,7 +339,7 @@ export default function MainTabNavigator({ route }) {
       />
       <Tab.Screen
         name="Chat"
-        component={InitialChatScreen}
+        component={ChatStack}
         options={{
           tabBarIcon: ({ focused, color, size }) => (
             <Feather name="message-square" size={size} color={color} />

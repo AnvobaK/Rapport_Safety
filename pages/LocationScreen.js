@@ -15,7 +15,12 @@ import {
   Platform,
 } from "react-native";
 import HeaderWithBack from "../components/Headerwithbackbutton";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import MapView, {
+  Marker,
+  Polyline,
+  Heatmap,
+  PROVIDER_GOOGLE,
+} from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserPreferences } from "../context/UserPreferencesContext";
@@ -52,6 +57,10 @@ const LocationScreen = ({ navigation }) => {
   const [routes, setRoutes] = useState([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [routeSheetExpanded, setRouteSheetExpanded] = useState(false);
+  const [mapType, setMapType] = useState("standard"); // standard, satellite, hybrid
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   // Get theme from context
   const { isDarkMode } = useUserPreferences();
@@ -295,9 +304,6 @@ const LocationScreen = ({ navigation }) => {
   // Custom header right component with location and info icons
   const HeaderRightComponent = () => (
     <View style={styles.headerRightContainer}>
-      <TouchableOpacity style={styles.headerIcon}>
-        <Ionicons name="location" size={24} color={theme.accentIcon} />
-      </TouchableOpacity>
       <TouchableOpacity
         style={styles.headerIcon}
         onPress={() => setShowInfoModal(true)}
@@ -324,238 +330,207 @@ const LocationScreen = ({ navigation }) => {
     return `${(meters / 1000).toFixed(2)} km`;
   };
 
+  // Sample heatmap points (now around KNUST campus, Kumasi, Ghana)
+  const heatmapPoints = [
+    { latitude: 6.6745, longitude: -1.5712, weight: 1 }, // KNUST main
+    { latitude: 6.675, longitude: -1.57, weight: 1 },
+    { latitude: 6.6735, longitude: -1.5725, weight: 1 },
+    { latitude: 6.676, longitude: -1.569, weight: 1 },
+    { latitude: 6.674, longitude: -1.573, weight: 1 },
+    { latitude: 6.6755, longitude: -1.5715, weight: 1 },
+    { latitude: 6.6738, longitude: -1.5708, weight: 1 },
+    { latitude: 6.6748, longitude: -1.572, weight: 1 },
+    { latitude: 6.6752, longitude: -1.5705, weight: 1 },
+    { latitude: 6.6742, longitude: -1.5718, weight: 1 },
+  ];
+
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.primaryBackground }]}
     >
-      <HeaderWithBack
-        title="Location Tracker"
-        rightComponent={<HeaderRightComponent />}
-      />
+      {/* Only show overlays if not in fullscreen mode */}
+      {!mapFullscreen && (
+        <>
+          <HeaderWithBack
+            title="Location Tracker"
+            rightComponent={<HeaderRightComponent />}
+            titleStyle={{ color: isDarkMode ? theme.primaryText : "#000" }}
+          />
 
-      {/* Normal Search Bar */}
-      <View style={styles.searchBarWrapper}>
-        <View
-          style={[
-            styles.searchBar,
-            {
-              backgroundColor: theme.modalBackground,
-              borderColor: theme.primaryBorder,
-            },
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={20}
-            color={theme.secondaryText}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={[styles.searchInput, { color: theme.primaryText }]}
-            placeholder="Search for places..."
-            placeholderTextColor={theme.secondaryText}
-            value={searchQuery}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              searchPlaces(text);
-            }}
-            onFocus={() => setShowSearchResults(true)}
-          />
-          {searchLoading && (
-            <ActivityIndicator
-              size="small"
-              color={theme.accentText}
-              style={styles.searchLoading}
-            />
-          )}
-        </View>
-        {/* Search Results */}
-        {showSearchResults && searchResults.length > 0 && (
+          {/* Map Style Switcher */}
+          <View style={styles.mapStyleSwitcherContainer}>
+            <TouchableOpacity
+              style={[
+                styles.mapStyleButton,
+                mapType === "standard" && styles.mapStyleButtonActive,
+              ]}
+              onPress={() => setMapType("standard")}
+            >
+              <Text
+                style={[
+                  styles.mapStyleButtonText,
+                  mapType === "standard" && styles.mapStyleButtonTextActive,
+                ]}
+              >
+                Streets
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.mapStyleButton,
+                mapType === "satellite" && styles.mapStyleButtonActive,
+              ]}
+              onPress={() => setMapType("satellite")}
+            >
+              <Text
+                style={[
+                  styles.mapStyleButtonText,
+                  mapType === "satellite" && styles.mapStyleButtonTextActive,
+                ]}
+              >
+                Satellite
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.mapStyleButton,
+                mapType === "hybrid" && styles.mapStyleButtonActive,
+              ]}
+              onPress={() => setMapType("hybrid")}
+            >
+              <Text
+                style={[
+                  styles.mapStyleButtonText,
+                  mapType === "hybrid" && styles.mapStyleButtonTextActive,
+                ]}
+              >
+                Hybrid
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.mapStyleButton,
+                showHeatmap && styles.mapStyleButtonActive,
+              ]}
+              onPress={() => setShowHeatmap((prev) => !prev)}
+            >
+              <Text
+                style={[
+                  styles.mapStyleButtonText,
+                  showHeatmap && styles.mapStyleButtonTextActive,
+                ]}
+              >
+                Heatmap
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Normal Search Bar */}
+          <View style={styles.searchBarWrapper}>
+            <View
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: theme.modalBackground,
+                  borderColor: theme.primaryBorder,
+                },
+              ]}
+            >
+              <Ionicons
+                name="search"
+                size={20}
+                color={theme.secondaryText}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={[styles.searchInput, { color: theme.primaryText }]}
+                placeholder="Search for places..."
+                placeholderTextColor={theme.secondaryText}
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  searchPlaces(text);
+                }}
+                onFocus={() => setShowSearchResults(true)}
+              />
+              {searchLoading && (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.accentText}
+                  style={styles.searchLoading}
+                />
+              )}
+            </View>
+            {/* Search Results */}
+            {showSearchResults && searchResults.length > 0 && (
+              <View
+                style={[
+                  styles.searchResultsContainer,
+                  {
+                    backgroundColor: theme.modalBackground,
+                    borderColor: theme.primaryBorder,
+                  },
+                ]}
+              >
+                <FlatList
+                  data={searchResults}
+                  keyExtractor={(item) => item.place_id.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.searchResultItem,
+                        { borderBottomColor: theme.primaryBorder },
+                      ]}
+                      onPress={() => handleSearchResultSelect(item)}
+                    >
+                      <Ionicons
+                        name="location-outline"
+                        size={16}
+                        color={theme.accentIcon}
+                      />
+                      <Text
+                        style={[
+                          styles.searchResultText,
+                          { color: theme.primaryText },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {item.display_name}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  keyboardShouldPersistTaps="handled"
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Transport Mode Dropdown and Add Waypoint Button in one row */}
           <View
             style={[
-              styles.searchResultsContainer,
+              styles.dropdownRow,
               {
-                backgroundColor: theme.modalBackground,
-                borderColor: theme.primaryBorder,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
               },
             ]}
           >
-            <FlatList
-              data={searchResults}
-              keyExtractor={(item) => item.place_id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.searchResultItem,
-                    { borderBottomColor: theme.primaryBorder },
-                  ]}
-                  onPress={() => handleSearchResultSelect(item)}
-                >
-                  <Ionicons
-                    name="location-outline"
-                    size={16}
-                    color={theme.accentIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.searchResultText,
-                      { color: theme.primaryText },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {item.display_name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              keyboardShouldPersistTaps="handled"
-            />
-          </View>
-        )}
-      </View>
-
-      {/* Transport Mode Dropdown and Add Waypoint Button in one row */}
-      <View
-        style={[
-          styles.dropdownRow,
-          {
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          },
-        ]}
-      >
-        <BlurView
-          intensity={60}
-          tint={isDarkMode ? "dark" : "light"}
-          style={[styles.glassDropdown, { flex: 1, marginRight: 8 }]}
-        >
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setShowModeDropdown(true)}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name={
-                TRANSPORT_MODES.find((m) => m.key === transportMode)?.icon ||
-                "car"
-              }
-              size={18}
-              color={theme.primaryText}
-              style={{ marginRight: 8 }}
-            />
-            <Text
-              style={{
-                color: theme.primaryText,
-                fontWeight: "600",
-                fontSize: 15,
-              }}
+            <BlurView
+              intensity={60}
+              tint={isDarkMode ? "dark" : "light"}
+              style={[styles.glassDropdown, { flex: 1, marginRight: 8 }]}
             >
-              {TRANSPORT_MODES.find((m) => m.key === transportMode)?.label ||
-                "Driving"}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={18}
-              color={theme.primaryText}
-              style={{ marginLeft: 8 }}
-            />
-          </TouchableOpacity>
-        </BlurView>
-        {/* Vibrant Add Waypoint Button */}
-        <TouchableOpacity
-          style={[
-            styles.gradientButton,
-            {
-              shadowColor,
-              flex: 1,
-              marginLeft: 0,
-              marginRight: 0,
-              minWidth: 120,
-              padding: 0,
-            },
-          ]}
-          onPress={handleAddWaypoint}
-          disabled={isAddingWaypoint}
-          activeOpacity={0.85}
-        >
-          <LinearGradient
-            colors={
-              isDarkMode ? ["#00C6FF", "#0072FF"] : ["#7be0ff", "#d28eff"]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <BlurView
-            intensity={85}
-            tint={isDarkMode ? "dark" : "light"}
-            style={styles.gradientButtonBlur}
-          >
-            <Text
-              style={{
-                color: theme.primaryBackground,
-                fontWeight: "700",
-                fontSize: 15,
-                letterSpacing: 0.5,
-                textAlign: "center",
-                textShadowColor: isDarkMode ? "#000" : "#fff",
-                textShadowRadius: 4,
-              }}
-            >
-              {isAddingWaypoint ? "Tap on map..." : "Add Waypoint"}
-            </Text>
-          </BlurView>
-        </TouchableOpacity>
-      </View>
-      {waypoint && (
-        <Text
-          style={{
-            color: theme.accentText,
-            marginTop: 2,
-            marginBottom: 4,
-            fontSize: 12,
-            fontWeight: "600",
-            textAlign: "center",
-          }}
-        >
-          Waypoint set. Tap again to change.
-        </Text>
-      )}
-
-      {/* Dropdown Modal rendered at root level */}
-      <Modal
-        visible={showModeDropdown}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowModeDropdown(false)}
-      >
-        <TouchableOpacity
-          style={styles.dropdownOverlay}
-          onPress={() => setShowModeDropdown(false)}
-          activeOpacity={1}
-        >
-          <View
-            style={[
-              styles.dropdownList,
-              { backgroundColor: glassBg, borderColor: glassBorder },
-            ]}
-          >
-            {TRANSPORT_MODES.map((mode) => (
               <TouchableOpacity
-                key={mode.key}
-                style={[
-                  styles.dropdownItem,
-                  transportMode === mode.key && {
-                    backgroundColor: glassBorder,
-                  },
-                ]}
-                onPress={() => {
-                  setTransportMode(mode.key);
-                  setShowModeDropdown(false);
-                }}
+                style={styles.dropdownButton}
+                onPress={() => setShowModeDropdown(true)}
+                activeOpacity={0.85}
               >
                 <Ionicons
-                  name={mode.icon}
+                  name={
+                    TRANSPORT_MODES.find((m) => m.key === transportMode)
+                      ?.icon || "car"
+                  }
                   size={18}
                   color={theme.primaryText}
                   style={{ marginRight: 8 }}
@@ -567,212 +542,339 @@ const LocationScreen = ({ navigation }) => {
                     fontSize: 15,
                   }}
                 >
-                  {mode.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Glassy Route Options Bar */}
-      {routes.length > 1 && (
-        <BlurView
-          intensity={60}
-          tint={isDarkMode ? "dark" : "light"}
-          style={styles.routeBarGlass}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.routeBar}
-            contentContainerStyle={{ alignItems: "center" }}
-          >
-            {routes.map((r, idx) => (
-              <TouchableOpacity
-                key={idx}
-                onPress={() => handleSelectRoute(idx)}
-                style={[
-                  styles.routeOption,
-                  {
-                    backgroundColor:
-                      idx === selectedRouteIndex
-                        ? isDarkMode
-                          ? "#00C6FF33"
-                          : "#7be0ff33"
-                        : "transparent",
-                    borderColor:
-                      idx === selectedRouteIndex
-                        ? theme.accentText
-                        : glassBorder,
-                    shadowColor:
-                      idx === selectedRouteIndex
-                        ? theme.accentText
-                        : "transparent",
-                    elevation: idx === selectedRouteIndex ? 6 : 0,
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    color:
-                      idx === selectedRouteIndex
-                        ? theme.accentText
-                        : theme.primaryText,
-                    fontWeight: "700",
-                    fontSize: 15,
-                  }}
-                >
-                  {formatDuration(r.duration)}
-                </Text>
-                <Text
-                  style={{
-                    color:
-                      idx === selectedRouteIndex
-                        ? theme.accentText
-                        : theme.secondaryText,
-                    fontSize: 13,
-                  }}
-                >
-                  {formatDistance(r.distance)}
-                </Text>
-                {r.legs && r.legs[0] && r.legs[0].summary && (
-                  <Text
-                    style={{
-                      color:
-                        idx === selectedRouteIndex
-                          ? theme.accentText
-                          : theme.tertiaryText,
-                      fontSize: 11,
-                      marginTop: 2,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {r.legs[0].summary}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </BlurView>
-      )}
-
-      {/* Enhanced Route Info Display */}
-      {routeInfo && (
-        <View style={styles.routeInfoContainer}>
-          <View
-            style={[
-              styles.routeInfoCard,
-              {
-                backgroundColor: theme.modalBackground,
-                borderColor: theme.primaryBorder,
-                shadowColor: shadowColor,
-              },
-            ]}
-          >
-            <View style={styles.routeInfoHeader}>
-              <Ionicons
-                name="navigate"
-                size={20}
-                color={theme.accentText}
-                style={styles.routeInfoIcon}
-              />
-              <Text
-                style={[styles.routeInfoTitle, { color: theme.primaryText }]}
-              >
-                Route Details
-              </Text>
-            </View>
-
-            <View style={styles.routeInfoContent}>
-              <View style={styles.routeInfoItem}>
-                <View style={styles.routeInfoItemLeft}>
-                  <Ionicons name="time" size={18} color={theme.accentIcon} />
-                  <Text
-                    style={[
-                      styles.routeInfoLabel,
-                      { color: theme.secondaryText },
-                    ]}
-                  >
-                    Duration
-                  </Text>
-                </View>
-                <Text
-                  style={[styles.routeInfoValue, { color: theme.primaryText }]}
-                >
-                  {formatDuration(routeInfo.duration)}
-                </Text>
-              </View>
-
-              <View style={styles.routeInfoDivider} />
-
-              <View style={styles.routeInfoItem}>
-                <View style={styles.routeInfoItemLeft}>
-                  <Ionicons name="map" size={18} color={theme.accentIcon} />
-                  <Text
-                    style={[
-                      styles.routeInfoLabel,
-                      { color: theme.secondaryText },
-                    ]}
-                  >
-                    Distance
-                  </Text>
-                </View>
-                <Text
-                  style={[styles.routeInfoValue, { color: theme.primaryText }]}
-                >
-                  {formatDistance(routeInfo.distance)}
-                </Text>
-              </View>
-
-              <View style={styles.routeInfoDivider} />
-
-              <View style={styles.routeInfoItem}>
-                <View style={styles.routeInfoItemLeft}>
-                  <Ionicons
-                    name={
-                      TRANSPORT_MODES.find((m) => m.key === transportMode)
-                        ?.icon || "car"
-                    }
-                    size={18}
-                    color={theme.accentIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.routeInfoLabel,
-                      { color: theme.secondaryText },
-                    ]}
-                  >
-                    Mode
-                  </Text>
-                </View>
-                <Text
-                  style={[styles.routeInfoValue, { color: theme.primaryText }]}
-                >
                   {TRANSPORT_MODES.find((m) => m.key === transportMode)
                     ?.label || "Driving"}
                 </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={18}
+                  color={theme.primaryText}
+                  style={{ marginLeft: 8 }}
+                />
+              </TouchableOpacity>
+            </BlurView>
+            {/* Vibrant Add Waypoint Button */}
+            <TouchableOpacity
+              style={[
+                styles.gradientButton,
+                {
+                  shadowColor,
+                  flex: 1,
+                  marginLeft: 0,
+                  marginRight: 0,
+                  minWidth: 120,
+                  padding: 0,
+                },
+              ]}
+              onPress={handleAddWaypoint}
+              disabled={isAddingWaypoint}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={
+                  isDarkMode ? ["#00C6FF", "#0072FF"] : ["#7be0ff", "#d28eff"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <BlurView
+                intensity={85}
+                tint={isDarkMode ? "dark" : "light"}
+                style={styles.gradientButtonBlur}
+              >
+                <Text
+                  style={{
+                    color: theme.primaryBackground,
+                    fontWeight: "700",
+                    fontSize: 15,
+                    letterSpacing: 0.5,
+                    textAlign: "center",
+                    textShadowColor: isDarkMode ? "#000" : "#fff",
+                    textShadowRadius: 4,
+                  }}
+                >
+                  {isAddingWaypoint ? "Tap on map..." : "Add Waypoint"}
+                </Text>
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+          {waypoint && (
+            <Text
+              style={{
+                color: theme.accentText,
+                marginTop: 2,
+                marginBottom: 4,
+                fontSize: 12,
+                fontWeight: "600",
+                textAlign: "center",
+              }}
+            >
+              Waypoint set. Tap again to change.
+            </Text>
+          )}
+
+          {/* Dropdown Modal rendered at root level */}
+          <Modal
+            visible={showModeDropdown}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowModeDropdown(false)}
+          >
+            <TouchableOpacity
+              style={styles.dropdownOverlay}
+              onPress={() => setShowModeDropdown(false)}
+              activeOpacity={1}
+            >
+              <View
+                style={[
+                  styles.dropdownList,
+                  { backgroundColor: glassBg, borderColor: glassBorder },
+                ]}
+              >
+                {TRANSPORT_MODES.map((mode) => (
+                  <TouchableOpacity
+                    key={mode.key}
+                    style={[
+                      styles.dropdownItem,
+                      transportMode === mode.key && {
+                        backgroundColor: glassBorder,
+                      },
+                    ]}
+                    onPress={() => {
+                      setTransportMode(mode.key);
+                      setShowModeDropdown(false);
+                    }}
+                  >
+                    <Ionicons
+                      name={mode.icon}
+                      size={18}
+                      color={theme.primaryText}
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text
+                      style={{
+                        color: theme.primaryText,
+                        fontWeight: "600",
+                        fontSize: 15,
+                      }}
+                    >
+                      {mode.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Glassy Route Options Bar */}
+          {routes.length > 1 && (
+            <BlurView
+              intensity={60}
+              tint={isDarkMode ? "dark" : "light"}
+              style={styles.routeBarGlass}
+            >
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.routeBar}
+                contentContainerStyle={{ alignItems: "center" }}
+              >
+                {routes.map((r, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => handleSelectRoute(idx)}
+                    style={[
+                      styles.routeOption,
+                      {
+                        backgroundColor:
+                          idx === selectedRouteIndex
+                            ? isDarkMode
+                              ? "#00C6FF33"
+                              : "#7be0ff33"
+                            : "transparent",
+                        borderColor:
+                          idx === selectedRouteIndex
+                            ? theme.accentText
+                            : glassBorder,
+                        shadowColor:
+                          idx === selectedRouteIndex
+                            ? theme.accentText
+                            : "transparent",
+                        elevation: idx === selectedRouteIndex ? 6 : 0,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          idx === selectedRouteIndex
+                            ? theme.accentText
+                            : theme.primaryText,
+                        fontWeight: "700",
+                        fontSize: 15,
+                      }}
+                    >
+                      {formatDuration(r.duration)}
+                    </Text>
+                    <Text
+                      style={{
+                        color:
+                          idx === selectedRouteIndex
+                            ? theme.accentText
+                            : theme.secondaryText,
+                        fontSize: 13,
+                      }}
+                    >
+                      {formatDistance(r.distance)}
+                    </Text>
+                    {r.legs && r.legs[0] && r.legs[0].summary && (
+                      <Text
+                        style={{
+                          color:
+                            idx === selectedRouteIndex
+                              ? theme.accentText
+                              : theme.tertiaryText,
+                          fontSize: 11,
+                          marginTop: 2,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {r.legs[0].summary}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </BlurView>
+          )}
+
+          {/* Enhanced Route Info Display */}
+          {routeInfo && (
+            <View style={styles.routeInfoContainer}>
+              <View
+                style={[
+                  styles.routeInfoCard,
+                  {
+                    backgroundColor: theme.modalBackground,
+                    borderColor: theme.primaryBorder,
+                    shadowColor: shadowColor,
+                  },
+                ]}
+              >
+                <View style={styles.routeInfoHeader}>
+                  <Ionicons
+                    name="navigate"
+                    size={20}
+                    color={theme.accentText}
+                    style={styles.routeInfoIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.routeInfoTitle,
+                      { color: theme.primaryText },
+                    ]}
+                  >
+                    Route Details
+                  </Text>
+                </View>
+
+                <View style={styles.routeInfoContent}>
+                  <View style={styles.routeInfoItem}>
+                    <View style={styles.routeInfoItemLeft}>
+                      <Ionicons
+                        name="time"
+                        size={18}
+                        color={theme.accentIcon}
+                      />
+                      <Text
+                        style={[
+                          styles.routeInfoLabel,
+                          { color: theme.secondaryText },
+                        ]}
+                      >
+                        Duration
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.routeInfoValue,
+                        { color: theme.primaryText },
+                      ]}
+                    >
+                      {formatDuration(routeInfo.duration)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.routeInfoDivider} />
+
+                  <View style={styles.routeInfoItem}>
+                    <View style={styles.routeInfoItemLeft}>
+                      <Ionicons name="map" size={18} color={theme.accentIcon} />
+                      <Text
+                        style={[
+                          styles.routeInfoLabel,
+                          { color: theme.secondaryText },
+                        ]}
+                      >
+                        Distance
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.routeInfoValue,
+                        { color: theme.primaryText },
+                      ]}
+                    >
+                      {formatDistance(routeInfo.distance)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.routeInfoDivider} />
+
+                  <View style={styles.routeInfoItem}>
+                    <View style={styles.routeInfoItemLeft}>
+                      <Ionicons
+                        name={
+                          TRANSPORT_MODES.find((m) => m.key === transportMode)
+                            ?.icon || "car"
+                        }
+                        size={18}
+                        color={theme.accentIcon}
+                      />
+                      <Text
+                        style={[
+                          styles.routeInfoLabel,
+                          { color: theme.secondaryText },
+                        ]}
+                      >
+                        Mode
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.routeInfoValue,
+                        { color: theme.primaryText },
+                      ]}
+                    >
+                      {TRANSPORT_MODES.find((m) => m.key === transportMode)
+                        ?.label || "Driving"}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
+          )}
+        </>
       )}
 
       {/* MapView always fills the rest of the space */}
       <View
-        style={{
-          flex: 1,
-          borderRadius: 24,
-          overflow: "hidden",
-          marginHorizontal: 8,
-          marginBottom: 8,
-          shadowColor,
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 8,
-          backgroundColor: glassBg,
-        }}
+        style={
+          mapFullscreen
+            ? styles.mapFullscreenContainer
+            : styles.mapAbsoluteContainer
+        }
       >
         {loading || !mapRegion ? (
           <ActivityIndicator
@@ -787,7 +889,22 @@ const LocationScreen = ({ navigation }) => {
             region={mapRegion}
             showsUserLocation={true}
             onPress={handleMapPress}
+            mapType={mapType}
+            provider={PROVIDER_GOOGLE}
           >
+            {/* Heatmap overlay (only if enabled) */}
+            {showHeatmap && (
+              <Heatmap
+                points={heatmapPoints}
+                opacity={0.7}
+                radius={50}
+                gradient={{
+                  colors: ["#00f", "#0ff", "#0f0", "#ff0", "#f00"],
+                  startPoints: [0.01, 0.25, 0.5, 0.75, 1],
+                  colorMapSize: 256,
+                }}
+              />
+            )}
             {/* Current Location Marker */}
             {location &&
               typeof location.latitude === "number" &&
@@ -846,26 +963,185 @@ const LocationScreen = ({ navigation }) => {
             )}
           </MapView>
         )}
-      </View>
 
-      {/* My Location Button */}
-      <TouchableOpacity
-        style={[
-          styles.myLocationButton,
-          {
-            backgroundColor: theme.accentText,
-            shadowColor,
-            shadowOpacity: 0.18,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 8,
-          },
-        ]}
-        onPress={centerOnMyLocation}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="locate" size={24} color={theme.primaryBackground} />
-      </TouchableOpacity>
+        {/* Fullscreen toggle button (always visible in top right) */}
+        <TouchableOpacity
+          style={styles.fullscreenToggleButton}
+          onPress={() => setMapFullscreen((prev) => !prev)}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name={mapFullscreen ? "contract" : "expand"}
+            size={28}
+            color={theme.accentText}
+          />
+        </TouchableOpacity>
+
+        {/* Only show overlays if not in fullscreen mode */}
+        {!mapFullscreen && (
+          <>
+            {/* My Location Button (absolute) */}
+            <TouchableOpacity
+              style={styles.myLocationButtonAbsolute}
+              onPress={centerOnMyLocation}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name="locate"
+                size={24}
+                color={theme.primaryBackground}
+              />
+            </TouchableOpacity>
+
+            {/* Route Details Bottom Sheet (expandable/collapsible) */}
+            {routeInfo && (
+              <View
+                style={[
+                  styles.routeDetailsSheet,
+                  routeSheetExpanded
+                    ? styles.routeDetailsSheetExpanded
+                    : styles.routeDetailsSheetCollapsed,
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.expandCollapseIcon}
+                  onPress={() => setRouteSheetExpanded((prev) => !prev)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={routeSheetExpanded ? "chevron-down" : "chevron-up"}
+                    size={28}
+                    color={theme.accentText}
+                  />
+                </TouchableOpacity>
+                {routeSheetExpanded && (
+                  <ScrollView
+                    contentContainerStyle={styles.routeDetailsContent}
+                  >
+                    <View
+                      style={[
+                        styles.routeInfoCard,
+                        {
+                          backgroundColor: theme.modalBackground,
+                          borderColor: theme.primaryBorder,
+                          shadowColor: shadowColor,
+                        },
+                      ]}
+                    >
+                      <View style={styles.routeInfoHeader}>
+                        <Ionicons
+                          name="navigate"
+                          size={20}
+                          color={theme.accentText}
+                          style={styles.routeInfoIcon}
+                        />
+                        <Text
+                          style={[
+                            styles.routeInfoTitle,
+                            { color: theme.primaryText },
+                          ]}
+                        >
+                          Route Details
+                        </Text>
+                      </View>
+
+                      <View style={styles.routeInfoContent}>
+                        <View style={styles.routeInfoItem}>
+                          <View style={styles.routeInfoItemLeft}>
+                            <Ionicons
+                              name="time"
+                              size={18}
+                              color={theme.accentIcon}
+                            />
+                            <Text
+                              style={[
+                                styles.routeInfoLabel,
+                                { color: theme.secondaryText },
+                              ]}
+                            >
+                              Duration
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.routeInfoValue,
+                              { color: theme.primaryText },
+                            ]}
+                          >
+                            {formatDuration(routeInfo.duration)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.routeInfoDivider} />
+
+                        <View style={styles.routeInfoItem}>
+                          <View style={styles.routeInfoItemLeft}>
+                            <Ionicons
+                              name="map"
+                              size={18}
+                              color={theme.accentIcon}
+                            />
+                            <Text
+                              style={[
+                                styles.routeInfoLabel,
+                                { color: theme.secondaryText },
+                              ]}
+                            >
+                              Distance
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.routeInfoValue,
+                              { color: theme.primaryText },
+                            ]}
+                          >
+                            {formatDistance(routeInfo.distance)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.routeInfoDivider} />
+
+                        <View style={styles.routeInfoItem}>
+                          <View style={styles.routeInfoItemLeft}>
+                            <Ionicons
+                              name={
+                                TRANSPORT_MODES.find(
+                                  (m) => m.key === transportMode
+                                )?.icon || "car"
+                              }
+                              size={18}
+                              color={theme.accentIcon}
+                            />
+                            <Text
+                              style={[
+                                styles.routeInfoLabel,
+                                { color: theme.secondaryText },
+                              ]}
+                            >
+                              Mode
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.routeInfoValue,
+                              { color: theme.primaryText },
+                            ]}
+                          >
+                            {TRANSPORT_MODES.find(
+                              (m) => m.key === transportMode
+                            )?.label || "Driving"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </ScrollView>
+                )}
+              </View>
+            )}
+          </>
+        )}
+      </View>
 
       {/* Info Modal */}
       <Modal
@@ -1253,6 +1529,107 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "rgba(0,0,0,0.06)",
     marginVertical: 8,
+  },
+  mapAbsoluteContainer: {
+    flex: 1,
+    position: "relative",
+  },
+  mapFullscreenContainer: {
+    flex: 1,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    backgroundColor: "#000",
+  },
+  fullscreenToggleButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 50,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+  },
+  routeDetailsSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "transparent",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  routeDetailsSheetExpanded: {
+    height: "70%",
+  },
+  routeDetailsSheetCollapsed: {
+    height: "30%",
+  },
+  expandCollapseIcon: {
+    alignSelf: "flex-end",
+    marginBottom: 10,
+  },
+  routeDetailsContent: {
+    flexGrow: 1,
+  },
+  myLocationButtonAbsolute: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  mapStyleSwitcherContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 20,
+    padding: 4,
+  },
+  mapStyleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignItems: "center",
+    marginHorizontal: 2,
+  },
+  mapStyleButtonActive: {
+    backgroundColor: "#00BFFF",
+  },
+  mapStyleButtonText: {
+    color: "#374151",
+    fontWeight: "500",
+    fontSize: 15,
+  },
+  mapStyleButtonTextActive: {
+    color: "#fff",
   },
 });
 

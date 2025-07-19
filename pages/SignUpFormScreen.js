@@ -15,9 +15,12 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 
 export default function SignUpFormScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const role = route.params?.role;
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,6 +28,9 @@ export default function SignUpFormScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [hostelName, setHostelName] = useState("");
   const [college, setCollege] = useState("");
+  const [department, setDepartment] = useState("");
+  const [staffId, setStaffId] = useState("");
+  const [indexNumber, setIndexNumber] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [showButton, setShowButton] = useState(false);
   const handleScroll = (event) => {
@@ -133,32 +139,79 @@ export default function SignUpFormScreen() {
               />
             </View>
 
-            {/* Hostel Name */}
-            <TextInput
-              style={styles.input}
-              placeholder="Name of Hostel"
-              placeholderTextColor="#6c757d"
-              value={hostelName}
-              onChangeText={setHostelName}
-            />
+            {/* Hostel Name or Address */}
+            {role === "student" ? (
+              <TextInput
+                style={styles.input}
+                placeholder="Name of Hostel"
+                placeholderTextColor="#6c757d"
+                value={hostelName}
+                onChangeText={setHostelName}
+              />
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Address"
+                placeholderTextColor="#6c757d"
+                value={hostelName}
+                onChangeText={setHostelName}
+              />
+            )}
 
             {/* College */}
-            <TextInput
-              style={styles.input}
-              placeholder="College"
-              placeholderTextColor="#6c757d"
-              value={college}
-              onChangeText={setCollege}
-            />
+            {role === "student" && (
+              <TextInput
+                style={styles.input}
+                placeholder="College"
+                placeholderTextColor="#6c757d"
+                value={college}
+                onChangeText={setCollege}
+              />
+            )}
 
-            {/* Reference ID */}
-            <TextInput
-              style={styles.input}
-              placeholder="Reference ID"
-              placeholderTextColor="#6c757d"
-              value={referenceId}
-              onChangeText={setReferenceId}
-            />
+            {/* Department (for Lecturer, TA, Student) */}
+            {(role === "lecturer" || role === "ta" || role === "student") && (
+              <TextInput
+                style={styles.input}
+                placeholder="Department"
+                placeholderTextColor="#6c757d"
+                value={department}
+                onChangeText={setDepartment}
+              />
+            )}
+
+            {/* Staff ID (for Lecturer only) */}
+            {role === "lecturer" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Staff ID"
+                placeholderTextColor="#6c757d"
+                value={staffId}
+                onChangeText={setStaffId}
+              />
+            )}
+
+            {/* Index Number (for Student only) */}
+            {role === "student" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Index Number"
+                placeholderTextColor="#6c757d"
+                value={indexNumber}
+                onChangeText={setIndexNumber}
+              />
+            )}
+
+            {/* Reference ID (for Student only) */}
+            {role === "student" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Reference ID"
+                placeholderTextColor="#6c757d"
+                value={referenceId}
+                onChangeText={setReferenceId}
+              />
+            )}
           </View>
 
           {/* Conditional Button */}

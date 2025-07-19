@@ -210,7 +210,7 @@ const GroupChatScreen = ({ route, navigation }) => {
         >
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.navigate("InitialChatScreen")}
+            onPress={() => navigation.popToTop()}
           >
             <Ionicons name="arrow-back" size={24} color={theme.accentText} />
           </TouchableOpacity>

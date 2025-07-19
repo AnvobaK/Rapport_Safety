@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/core";
 import { useChats } from "../context/ChatsContext";
+import { useGroups } from "../context/GroupsContext";
 import { useUserPreferences } from "../context/UserPreferencesContext";
 import { getTheme } from "../context/theme";
 
@@ -20,8 +21,47 @@ const InitialChatScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { chats, addChat, removeChat } = useChats();
+  const { groups, setGroups } = useGroups();
   const { isDarkMode } = useUserPreferences();
   const theme = getTheme(isDarkMode);
+
+  const [filter, setFilter] = useState("all"); // all, direct, group
+
+  // Combine direct chats and group chats
+  const groupChats = groups.map((group) => {
+    const lastMsg = group.messages[group.messages.length - 1];
+    return {
+      id: group.id,
+      isGroup: true,
+      name: group.name,
+      avatar: group.avatar || "https://i.pravatar.cc/100?img=8", // fallback group avatar
+      lastMessage: lastMsg ? lastMsg.text : "",
+      timestamp: lastMsg ? lastMsg.timestamp : "",
+      unreadCount: 0, // implement unread logic if needed
+      group,
+    };
+  });
+  const directChats = chats.map((chat) => ({
+    id: chat.id,
+    isGroup: false,
+    name: chat.contact.name,
+    avatar: chat.contact.avatar,
+    lastMessage: chat.lastMessage,
+    timestamp: chat.timestamp,
+    unreadCount: chat.unreadCount,
+    contact: chat.contact,
+  }));
+  const allChats = [...groupChats, ...directChats].sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
+
+  // Filter chats based on filter state
+  const filteredChats = allChats.filter((chat) => {
+    if (filter === "all") return true;
+    if (filter === "direct") return !chat.isGroup;
+    if (filter === "group") return chat.isGroup;
+    return true;
+  });
 
   useEffect(() => {
     if (route.params?.newChat && route.params?.fromChat) {
@@ -35,24 +75,42 @@ const InitialChatScreen = () => {
     navigation.navigate("Contact");
   };
 
-  const handleChatPress = (chat) => {
-    navigation.navigate("ChatScreen", { contact: chat.contact });
+  const handleChatPress = (item) => {
+    if (item.isGroup) {
+      navigation.navigate("GroupChatScreen", { groupId: item.id });
+    } else {
+      navigation.navigate("ChatScreen", { contact: item.contact });
+    }
   };
 
-  const handleChatLongPress = (chat) => {
+  const handleChatLongPress = (item) => {
+    if (item.isGroup) {
+      Alert.alert(
+        "Delete Group",
+        `Are you sure you want to delete the group '${item.name}'? This cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              setGroups((prev) => prev.filter((g) => g.id !== item.id));
+            },
+          },
+        ]
+      );
+      return;
+    }
     Alert.alert(
       "Delete Chat",
-      `Are you sure you want to delete the chat with ${chat.contact.name}?`,
+      `Are you sure you want to delete the chat with ${item.name}?`,
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            removeChat(chat.id);
+            removeChat(item.id);
           },
         },
       ]
@@ -66,11 +124,11 @@ const InitialChatScreen = () => {
       onLongPress={() => handleChatLongPress(item)}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: item.contact.avatar }} style={styles.chatAvatar} />
+      <Image source={{ uri: item.avatar }} style={styles.chatAvatar} />
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
           <Text style={[styles.chatName, { color: theme.primaryText }]}>
-            {item.contact.name}
+            {item.name} {item.isGroup ? " (Group)" : ""}
           </Text>
           <Text style={[styles.chatTime, { color: theme.secondaryText }]}>
             {item.timestamp}
@@ -103,7 +161,7 @@ const InitialChatScreen = () => {
   );
 
   // Show empty state if no chats
-  if (chats.length === 0) {
+  if (allChats.length === 0) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.primaryBackground }]}
@@ -196,18 +254,72 @@ const InitialChatScreen = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Filter Segmented Control */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === "all" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter("all")}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === "all" && styles.filterTextActive,
+            ]}
+          >
+            All
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === "direct" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter("direct")}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === "direct" && styles.filterTextActive,
+            ]}
+          >
+            Direct
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === "group" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter("group")}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === "group" && styles.filterTextActive,
+            ]}
+          >
+            Group
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Chats List */}
       <FlatList
-        data={chats}
+        data={filteredChats}
         renderItem={renderChatItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) =>
+          item.isGroup ? `group-${item.id}` : `chat-${item.id}`
+        }
         style={styles.chatsList}
         contentContainerStyle={styles.chatsContainer}
         showsVerticalScrollIndicator={false}
       />
 
       {/* Hint for long press */}
-      {chats.length > 0 && (
+      {filteredChats.length > 0 && (
         <View style={styles.hintContainer}>
           <Text style={[styles.hintText, { color: theme.secondaryText }]}>
             Long press on a chat to delete it
@@ -353,6 +465,34 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 12,
     fontStyle: "italic",
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 10,
+    marginTop: -10,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 20,
+    padding: 4,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  filterButtonActive: {
+    backgroundColor: "#00BFFF",
+  },
+  filterText: {
+    color: "#374151",
+    fontWeight: "500",
+    fontSize: 15,
+  },
+  filterTextActive: {
+    color: "#fff",
   },
 });
 

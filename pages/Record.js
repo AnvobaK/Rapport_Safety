@@ -69,6 +69,11 @@ const VoiceRecorderScreen = () => {
       if (timer) {
         clearInterval(timer);
       }
+      // Ensure audio stops if playing when leaving the screen
+      if (sound) {
+        sound.stopAsync();
+        sound.unloadAsync();
+      }
     };
   }, []);
 

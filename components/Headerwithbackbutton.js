@@ -10,6 +10,7 @@ export default function HeaderWithBack({
   onBackPress,
   showBackButton = true,
   rightComponent = null,
+  titleStyle = {},
 }) {
   const insets = useSafeAreaInsets();
 
@@ -44,7 +45,7 @@ export default function HeaderWithBack({
 
         {/* Center - Title */}
         <View style={styles.centerSection}>
-          {title && <Text style={styles.title}>{title}</Text>}
+          {title && <Text style={[styles.title, titleStyle]}>{title}</Text>}
         </View>
 
         {/* Right side - Custom component or menu */}
