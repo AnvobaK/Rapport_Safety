@@ -21,6 +21,7 @@ import CommunityRulesScreen from "../pages/CommunityRulesScreen";
 import InitialChatScreen from "../pages/InitialChatScreen";
 import SOSPage from "../pages/SOSPage";
 import ChatStack from "./ChatStack";
+import SOSActiveScreen from "../pages/SOSactive";
 
 const Tab = createBottomTabNavigator();
 const { width: screenWidth } = Dimensions.get("window");
@@ -157,17 +158,31 @@ function CustomTabBar({ state, descriptors, navigation }) {
                   },
                 ]}
               >
-                <TouchableOpacity
-                  style={styles.sosTouchable}
-                  onPress={onPress}
-                  activeOpacity={0.8}
+                <View
+                  style={{
+                    backgroundColor: "",
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
                 >
-                  <Text
-                    style={[styles.sosText, { color: theme.primaryBackground }]}
+                  <TouchableOpacity
+                    style={styles.sosTouchable}
+                    onPress={onPress}
+                    activeOpacity={0.8}
                   >
-                    SOS
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.sosText,
+                        { color: theme.primaryBackground },
+                      ]}
+                    >
+                      SOS
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </Animated.View>
             );
           }

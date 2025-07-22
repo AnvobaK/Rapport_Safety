@@ -675,7 +675,16 @@ const CommunityPage = ({ navigation }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.primaryBackground }]}
     >
-      <HeaderWithBack />
+      <HeaderWithBack
+        title="Community"
+        rightComponent={
+          <TouchableOpacity
+            onPress={() => navigation.navigate("CommunitySettings")}
+          >
+            <Ionicons name="menu" size={24} color="#00BFFF" />
+          </TouchableOpacity>
+        }
+      />
       <StatusBar
         barStyle={theme.statusBarStyle}
         backgroundColor={theme.statusBarBackground}

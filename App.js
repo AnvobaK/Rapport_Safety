@@ -19,7 +19,6 @@ import Notifications from "./pages/Notifications";
 import VoiceRecorderScreen from "./pages/Record";
 import ReportWriterPage from "./pages/ReportPage";
 import SOSButton from "./pages/SOSPage";
-import SOSActiveScreen from "./pages/SafeWordActive";
 import SettingsScreen from "./pages/Profile-Extended";
 import EditProfileScreen from "./pages/EditProfile";
 import TermsConditionsPage from "./pages/TermsandConditions";
@@ -39,6 +38,9 @@ import { GlobalChatProvider } from "./context/GlobalChatContext";
 import CreateGroupScreen from "./pages/CreateGroupScreen";
 import { GroupsProvider } from "./context/GroupsContext";
 import GroupChatScreen from "./pages/GroupChatScreen";
+import CommunitySettingsScreen from "./pages/CommunitySettings";
+import SOSActiveScreen from "./pages/SOSactive";
+
 const Stack = createNativeStackNavigator();
 
 function RootStack() {
@@ -59,7 +61,7 @@ function RootStack() {
       screenOptions={{
         headerShown: false,
       }}
-      initialRouteName={isFirstTimeUser ? "CommunityRules" : "Splash"}
+      initialRouteName={isFirstTimeUser ? "CommunityRules" : "MainTabNavigator"}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="MainTabNavigator" component={MainTabNavigator} />
@@ -71,6 +73,16 @@ function RootStack() {
       <Stack.Screen name="SelectRole" component={SelectRoleScreen} />
       <Stack.Screen name="SignUpForm" component={SignUpFormScreen} />
       <Stack.Screen name="SignUpProfile" component={SignUpProfileScreen} />
+      <Stack.Screen name="SOSActive" component={SOSActiveScreen} />
+
+      <Stack.Screen
+        name="CommunitySettings"
+        component={CommunitySettingsScreen}
+        options={{
+          presentation: "modal",
+          gestureEnabled: true,
+        }}
+      />
       <Stack.Screen
         name="MainTabs"
         component={MainTabNavigator}
@@ -103,7 +115,6 @@ function RootStack() {
         }}
       />
       <Stack.Screen name="sos" component={SOSButton} />
-      <Stack.Screen name="sosactive" component={SOSActiveScreen} />
       <Stack.Screen
         name="settings"
         component={SettingsScreen}
