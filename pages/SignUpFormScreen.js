@@ -43,190 +43,241 @@ export default function SignUpFormScreen() {
     }
   };
 
-  const handleNext = () => {
-    navigation.navigate("SignUpProfile");
+  const handleNext = (role) => {
+    navigation.navigate("SignUpProfile", modelJsonOnRole(role));
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+  const modelJsonOnRole = (role) => {
+    userDetails = {}
+    switch (role) {
+      case "student":
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          // TODO: Find a way to change dates into the format below
+          birthDate: "2000-01-15T00:00:00Z",
+          phoneNumber: phoneNumber,
+          hostel: hostelName,
+          college: college,
+          refId: referenceId,
+        };
+      case "ta":
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          birthDate: "2005-08-12T00:00:00Z",
+          phoneNumber: phoneNumber,
+          department: department,
+          college: college,
+          staffId: staffId,
+        };
+      case "lecturer":
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          birthDate: "1982-04-15T00:00:00Z",
+          phoneNumber: phoneNumber,
+          department: department,
+          college: college,
+          staffId: staffId,
+        };
+      default:
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          birthDate: "1982-04-15T00:00:00Z",
+          phoneNumber: phoneNumber,
+          staffId: staffId,
+        };
+    }
 
-      {/* Progress Indicator */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}></View>
-        <View style={[styles.progressBar, styles.progressActive]}></View>
-        <View style={styles.progressBar}></View>
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: 100,
-          }}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Let's</Text>
-            <Text style={styles.title}>Get you started</Text>
-            <Text style={styles.subtitle}>
-              Fill in the forms to create your account
-            </Text>
-          </View>
-
-          {/* Form */}
-          <View style={styles.formContainer}>
-            {/* Name Row */}
-            <View style={styles.nameRow}>
-              <TextInput
-                style={[styles.input, styles.halfInput, styles.leftInput]}
-                placeholder="First Name"
-                placeholderTextColor="#6c757d"
-                value={firstName}
-                onChangeText={setFirstName}
-              />
-
-              <TextInput
-                style={[styles.input, styles.halfInput, styles.rightInput]}
-                placeholder="Last Name"
-                placeholderTextColor="#6c757d"
-                value={lastName}
-                onChangeText={setLastName}
-              />
-            </View>
-
-            {/* Email */}
-            <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              placeholderTextColor="#6c757d"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            {/* Date of Birth */}
-            <TextInput
-              style={styles.input}
-              placeholder="10/10/2025"
-              placeholderTextColor="#6c757d"
-              value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-            />
-
-            {/* Phone Number */}
-            <View style={styles.phoneContainer}>
-              <View style={styles.countryCodeContainer}>
-                <Text style={styles.countryCodeFlag}>🇬🇭</Text>
-                <Text style={styles.countryCode}>(+233)</Text>
-              </View>
-
-              <TextInput
-                style={styles.phoneInput}
-                placeholder="Phone number"
-                placeholderTextColor="#6c757d"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            {/* Hostel Name or Address */}
-            {role === "student" ? (
-              <TextInput
-                style={styles.input}
-                placeholder="Name of Hostel"
-                placeholderTextColor="#6c757d"
-                value={hostelName}
-                onChangeText={setHostelName}
-              />
-            ) : (
-              <TextInput
-                style={styles.input}
-                placeholder="Address"
-                placeholderTextColor="#6c757d"
-                value={hostelName}
-                onChangeText={setHostelName}
-              />
-            )}
-
-            {/* College */}
-            {role === "student" && (
-              <TextInput
-                style={styles.input}
-                placeholder="College"
-                placeholderTextColor="#6c757d"
-                value={college}
-                onChangeText={setCollege}
-              />
-            )}
-
-            {/* Department (for Lecturer, TA, Student) */}
-            {(role === "lecturer" || role === "ta" || role === "student") && (
-              <TextInput
-                style={styles.input}
-                placeholder="Department"
-                placeholderTextColor="#6c757d"
-                value={department}
-                onChangeText={setDepartment}
-              />
-            )}
-
-            {/* Staff ID (for Lecturer only) */}
-            {role === "lecturer" && (
-              <TextInput
-                style={styles.input}
-                placeholder="Staff ID"
-                placeholderTextColor="#6c757d"
-                value={staffId}
-                onChangeText={setStaffId}
-              />
-            )}
-
-            {/* Index Number (for Student only) */}
-            {role === "student" && (
-              <TextInput
-                style={styles.input}
-                placeholder="Index Number"
-                placeholderTextColor="#6c757d"
-                value={indexNumber}
-                onChangeText={setIndexNumber}
-              />
-            )}
-
-            {/* Reference ID (for Student only) */}
-            {role === "student" && (
-              <TextInput
-                style={styles.input}
-                placeholder="Reference ID"
-                placeholderTextColor="#6c757d"
-                value={referenceId}
-                onChangeText={setReferenceId}
-              />
-            )}
-          </View>
-
-          {/* Conditional Button */}
-          {showButton && (
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-                <Text style={styles.nextButtonText}>Next</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+    return userDetails;
+  };
 }
+
+return (
+  <SafeAreaView style={styles.container}>
+    <StatusBar barStyle="light-content" />
+
+    {/* Progress Indicator */}
+    <View style={styles.progressContainer}>
+      <View style={styles.progressBar}></View>
+      <View style={[styles.progressBar, styles.progressActive]}></View>
+      <View style={styles.progressBar}></View>
+    </View>
+
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 100,
+        }}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Let's</Text>
+          <Text style={styles.title}>Get you started</Text>
+          <Text style={styles.subtitle}>
+            Fill in the forms to create your account
+          </Text>
+        </View>
+
+        {/* Form */}
+        <View style={styles.formContainer}>
+          {/* Name Row */}
+          <View style={styles.nameRow}>
+            <TextInput
+              style={[styles.input, styles.halfInput, styles.leftInput]}
+              placeholder="First Name"
+              placeholderTextColor="#6c757d"
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+
+            <TextInput
+              style={[styles.input, styles.halfInput, styles.rightInput]}
+              placeholder="Last Name"
+              placeholderTextColor="#6c757d"
+              value={lastName}
+              onChangeText={setLastName}
+            />
+          </View>
+
+          {/* Email */}
+          <TextInput
+            style={styles.input}
+            placeholder="Email Address"
+            placeholderTextColor="#6c757d"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+
+          {/* Date of Birth */}
+          <TextInput
+            style={styles.input}
+            placeholder="10/10/2025"
+            placeholderTextColor="#6c757d"
+            value={dateOfBirth}
+            onChangeText={setDateOfBirth}
+          />
+
+          {/* Phone Number */}
+          <View style={styles.phoneContainer}>
+            <View style={styles.countryCodeContainer}>
+              <Text style={styles.countryCodeFlag}>🇬🇭</Text>
+              <Text style={styles.countryCode}>(+233)</Text>
+            </View>
+
+            <TextInput
+              style={styles.phoneInput}
+              placeholder="Phone number"
+              placeholderTextColor="#6c757d"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          {/* Hostel Name or Address */}
+          {role === "student" ? (
+            <TextInput
+              style={styles.input}
+              placeholder="Name of Hostel"
+              placeholderTextColor="#6c757d"
+              value={hostelName}
+              onChangeText={setHostelName}
+            />
+          ) : (
+            <TextInput
+              style={styles.input}
+              placeholder="Address"
+              placeholderTextColor="#6c757d"
+              value={hostelName}
+              onChangeText={setHostelName}
+            />
+          )}
+
+          {/* College */}
+          {role === "student" && (
+            <TextInput
+              style={styles.input}
+              placeholder="College"
+              placeholderTextColor="#6c757d"
+              value={college}
+              onChangeText={setCollege}
+            />
+          )}
+
+          {/* Department (for Lecturer, TA, Student) */}
+          {(role === "lecturer" || role === "ta" || role === "student") && (
+            <TextInput
+              style={styles.input}
+              placeholder="Department"
+              placeholderTextColor="#6c757d"
+              value={department}
+              onChangeText={setDepartment}
+            />
+          )}
+
+          {/* Staff ID (for Lecturer only) */}
+          {role === "lecturer" && (
+            <TextInput
+              style={styles.input}
+              placeholder="Staff ID"
+              placeholderTextColor="#6c757d"
+              value={staffId}
+              onChangeText={setStaffId}
+            />
+          )}
+
+          {/* Index Number (for Student only) */}
+          {role === "student" && (
+            <TextInput
+              style={styles.input}
+              placeholder="Index Number"
+              placeholderTextColor="#6c757d"
+              value={indexNumber}
+              onChangeText={setIndexNumber}
+            />
+          )}
+
+          {/* Reference ID (for Student only) */}
+          {role === "student" && (
+            <TextInput
+              style={styles.input}
+              placeholder="Reference ID"
+              placeholderTextColor="#6c757d"
+              value={referenceId}
+              onChangeText={setReferenceId}
+            />
+          )}
+        </View>
+
+        {/* Conditional Button */}
+        {showButton && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.nextButton} onPress={handleNext(role)}>
+              <Text style={styles.nextButtonText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 
 const styles = StyleSheet.create({
   container: {
