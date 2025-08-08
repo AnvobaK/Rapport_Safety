@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker"; // <-- Import Image Picker
+import { useRoute } from '@react-navigation/native'
 import { useNavigation } from "@react-navigation/native";
 
 export default function SignUpProfileScreen() {
@@ -23,6 +24,20 @@ export default function SignUpProfileScreen() {
   const [profileImage, setProfileImage] = useState();
 
   const handleComplete = () => {
+    const route = useRoute()
+    //! TODO: This might cause some problems
+    const userDetails = {...route.params}
+    userDetails.password = password
+    userDetails.username = username
+    const requestOptions = {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(
+        {
+          userDetails
+        }
+      )
+    }
     navigation.navigate("LogIn");
   };
 
