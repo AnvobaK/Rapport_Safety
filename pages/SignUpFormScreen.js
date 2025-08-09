@@ -54,6 +54,7 @@ export default function SignUpFormScreen() {
         userDetails = {
           firstName: firstName,
           lastName: lastName,
+          role: role,
           email: email,
           // TODO: Find a way to change dates into the format below
           birthDate: "2000-01-15T00:00:00Z",
@@ -66,6 +67,7 @@ export default function SignUpFormScreen() {
         userDetails = {
           firstName: firstName,
           lastName: lastName,
+          role: role,
           email: email,
           birthDate: "2005-08-12T00:00:00Z",
           phoneNumber: phoneNumber,
@@ -77,6 +79,7 @@ export default function SignUpFormScreen() {
         userDetails = {
           firstName: firstName,
           lastName: lastName,
+          role: role,
           email: email,
           birthDate: "1982-04-15T00:00:00Z",
           phoneNumber: phoneNumber,
@@ -88,6 +91,7 @@ export default function SignUpFormScreen() {
         userDetails = {
           firstName: firstName,
           lastName: lastName,
+          role: "other",
           email: email,
           birthDate: "1982-04-15T00:00:00Z",
           phoneNumber: phoneNumber,

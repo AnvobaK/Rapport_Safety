@@ -8,17 +8,45 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
+  const [isLoading, setIsLoading] = useState(false)
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation();
 
   const handleLogin = () => {
     console.log("Login with:", username, password);
-    navigation.navigate("Welcome");
+
+    const requestOptions = {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        "usernameOrEmail": username,
+        "password": password
+      })
+    }
+
+    setIsLoading(true)
+    fetch(
+      `https://rapport-backend.onrender.com/auth/login`,
+      requestOptions
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        handleDashboard()
+      })
+      .catch((error) => {
+        alert("Login Failed", error.message);
+        console.error("Error:", error);
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
   };
 
   const handleForgotPassword = () => {
@@ -76,10 +104,11 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={handleDashboard}
+              onPress={handleLogin}
             >
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
+            {isLoading && ActivityIndicator}
           </View>
 
           {/* Sign Up */}

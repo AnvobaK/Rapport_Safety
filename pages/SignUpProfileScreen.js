@@ -20,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 export default function SignUpProfileScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const [isLoading, setIsLoading] = useState<bool>(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
