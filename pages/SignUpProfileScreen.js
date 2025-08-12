@@ -36,9 +36,7 @@ export default function SignUpProfileScreen() {
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userDetails,
-      }),
+      body: JSON.stringify(userDetails),
     };
 
     setIsLoading(true)

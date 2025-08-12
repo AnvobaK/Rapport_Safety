@@ -8,11 +8,8 @@ import {
   SafeAreaView,
   StatusBar,
   ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  KeyboardAvoidingView,
-  KeyboardAvoidingViewComponent,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useRoute } from "@react-navigation/native";
@@ -21,6 +18,7 @@ export default function SignUpFormScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const role = route.params?.role;
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,6 +31,7 @@ export default function SignUpFormScreen() {
   const [indexNumber, setIndexNumber] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [showButton, setShowButton] = useState(false);
+
   const handleScroll = (event) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isBottom =
@@ -44,11 +43,15 @@ export default function SignUpFormScreen() {
   };
 
   const handleNext = (role) => {
-    navigation.navigate("SignUpProfile", modelJsonOnRole(role));
+    user = modelJsonOnRole(role)
+    console.log("Role selected:", role);
+    console.log("User details:", user)
+    
+    navigation.navigate("SignUpProfile", user);
   };
 
   const modelJsonOnRole = (role) => {
-    userDetails = {}
+    userDetails = {};
     switch (role) {
       case "student":
         userDetails = {
@@ -56,13 +59,13 @@ export default function SignUpFormScreen() {
           lastName: lastName,
           role: role,
           email: email,
-          // TODO: Find a way to change dates into the format below
           birthDate: "2000-01-15T00:00:00Z",
           phoneNumber: phoneNumber,
           hostel: hostelName,
           college: college,
           refId: referenceId,
         };
+        break;
       case "ta":
         userDetails = {
           firstName: firstName,
@@ -75,6 +78,7 @@ export default function SignUpFormScreen() {
           college: college,
           staffId: staffId,
         };
+        break;
       case "lecturer":
         userDetails = {
           firstName: firstName,
@@ -87,6 +91,7 @@ export default function SignUpFormScreen() {
           college: college,
           staffId: staffId,
         };
+        break
       default:
         userDetails = {
           firstName: firstName,
@@ -101,187 +106,190 @@ export default function SignUpFormScreen() {
 
     return userDetails;
   };
-}
 
-return (
-  <SafeAreaView style={styles.container}>
-    <StatusBar barStyle="light-content" />
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-    {/* Progress Indicator */}
-    <View style={styles.progressContainer}>
-      <View style={styles.progressBar}></View>
-      <View style={[styles.progressBar, styles.progressActive]}></View>
-      <View style={styles.progressBar}></View>
-    </View>
+      {/* Progress Indicator */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}></View>
+        <View style={[styles.progressBar, styles.progressActive]}></View>
+        <View style={styles.progressBar}></View>
+      </View>
 
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 100,
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Let's</Text>
-          <Text style={styles.title}>Get you started</Text>
-          <Text style={styles.subtitle}>
-            Fill in the forms to create your account
-          </Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.formContainer}>
-          {/* Name Row */}
-          <View style={styles.nameRow}>
-            <TextInput
-              style={[styles.input, styles.halfInput, styles.leftInput]}
-              placeholder="First Name"
-              placeholderTextColor="#6c757d"
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-
-            <TextInput
-              style={[styles.input, styles.halfInput, styles.rightInput]}
-              placeholder="Last Name"
-              placeholderTextColor="#6c757d"
-              value={lastName}
-              onChangeText={setLastName}
-            />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 100,
+          }}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Let's</Text>
+            <Text style={styles.title}>Get you started</Text>
+            <Text style={styles.subtitle}>
+              Fill in the forms to create your account
+            </Text>
           </View>
 
-          {/* Email */}
-          <TextInput
-            style={styles.input}
-            placeholder="Email Address"
-            placeholderTextColor="#6c757d"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          {/* Form */}
+          <View style={styles.formContainer}>
+            {/* Name Row */}
+            <View style={styles.nameRow}>
+              <TextInput
+                style={[styles.input, styles.halfInput, styles.leftInput]}
+                placeholder="First Name"
+                placeholderTextColor="#6c757d"
+                value={firstName}
+                onChangeText={setFirstName}
+              />
 
-          {/* Date of Birth */}
-          <TextInput
-            style={styles.input}
-            placeholder="10/10/2025"
-            placeholderTextColor="#6c757d"
-            value={dateOfBirth}
-            onChangeText={setDateOfBirth}
-          />
-
-          {/* Phone Number */}
-          <View style={styles.phoneContainer}>
-            <View style={styles.countryCodeContainer}>
-              <Text style={styles.countryCodeFlag}>🇬🇭</Text>
-              <Text style={styles.countryCode}>(+233)</Text>
+              <TextInput
+                style={[styles.input, styles.halfInput, styles.rightInput]}
+                placeholder="Last Name"
+                placeholderTextColor="#6c757d"
+                value={lastName}
+                onChangeText={setLastName}
+              />
             </View>
 
+            {/* Email */}
             <TextInput
-              style={styles.phoneInput}
-              placeholder="Phone number"
+              style={styles.input}
+              placeholder="Email Address"
               placeholderTextColor="#6c757d"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
+
+            {/* Date of Birth */}
+            <TextInput
+              style={styles.input}
+              placeholder="10/10/2025"
+              placeholderTextColor="#6c757d"
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+            />
+
+            {/* Phone Number */}
+            <View style={styles.phoneContainer}>
+              <View style={styles.countryCodeContainer}>
+                <Text style={styles.countryCodeFlag}>🇬🇭</Text>
+                <Text style={styles.countryCode}>(+233)</Text>
+              </View>
+
+              <TextInput
+                style={styles.phoneInput}
+                placeholder="Phone number"
+                placeholderTextColor="#6c757d"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            {/* Hostel Name or Address */}
+            {role === "student" ? (
+              <TextInput
+                style={styles.input}
+                placeholder="Name of Hostel"
+                placeholderTextColor="#6c757d"
+                value={hostelName}
+                onChangeText={setHostelName}
+              />
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Address"
+                placeholderTextColor="#6c757d"
+                value={hostelName}
+                onChangeText={setHostelName}
+              />
+            )}
+
+            {/* College */}
+            {role !== "other" && (
+              <TextInput
+                style={styles.input}
+                placeholder="College"
+                placeholderTextColor="#6c757d"
+                value={college}
+                onChangeText={setCollege}
+              />
+            )}
+
+            {/* Department */}
+            {(role === "lecturer" || role === "ta" || role === "student") && (
+              <TextInput
+                style={styles.input}
+                placeholder="Department"
+                placeholderTextColor="#6c757d"
+                value={department}
+                onChangeText={setDepartment}
+              />
+            )}
+
+            {/* Staff ID */}
+            {role === "lecturer" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Staff ID"
+                placeholderTextColor="#6c757d"
+                value={staffId}
+                onChangeText={setStaffId}
+              />
+            )}
+
+            {/* Index Number */}
+            {role === "student" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Index Number"
+                placeholderTextColor="#6c757d"
+                value={indexNumber}
+                onChangeText={setIndexNumber}
+              />
+            )}
+
+            {/* Reference ID */}
+            {role === "student" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Reference ID"
+                placeholderTextColor="#6c757d"
+                value={referenceId}
+                onChangeText={setReferenceId}
+              />
+            )}
           </View>
 
-          {/* Hostel Name or Address */}
-          {role === "student" ? (
-            <TextInput
-              style={styles.input}
-              placeholder="Name of Hostel"
-              placeholderTextColor="#6c757d"
-              value={hostelName}
-              onChangeText={setHostelName}
-            />
-          ) : (
-            <TextInput
-              style={styles.input}
-              placeholder="Address"
-              placeholderTextColor="#6c757d"
-              value={hostelName}
-              onChangeText={setHostelName}
-            />
+          {/* Conditional Button */}
+          {showButton && (
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.nextButton}
+                onPress={() => handleNext(role)}
+              >
+                <Text style={styles.nextButtonText}>Next</Text>
+              </TouchableOpacity>
+            </View>
           )}
-
-          {/* College */}
-          {role === "student" && (
-            <TextInput
-              style={styles.input}
-              placeholder="College"
-              placeholderTextColor="#6c757d"
-              value={college}
-              onChangeText={setCollege}
-            />
-          )}
-
-          {/* Department (for Lecturer, TA, Student) */}
-          {(role === "lecturer" || role === "ta" || role === "student") && (
-            <TextInput
-              style={styles.input}
-              placeholder="Department"
-              placeholderTextColor="#6c757d"
-              value={department}
-              onChangeText={setDepartment}
-            />
-          )}
-
-          {/* Staff ID (for Lecturer only) */}
-          {role === "lecturer" && (
-            <TextInput
-              style={styles.input}
-              placeholder="Staff ID"
-              placeholderTextColor="#6c757d"
-              value={staffId}
-              onChangeText={setStaffId}
-            />
-          )}
-
-          {/* Index Number (for Student only) */}
-          {role === "student" && (
-            <TextInput
-              style={styles.input}
-              placeholder="Index Number"
-              placeholderTextColor="#6c757d"
-              value={indexNumber}
-              onChangeText={setIndexNumber}
-            />
-          )}
-
-          {/* Reference ID (for Student only) */}
-          {role === "student" && (
-            <TextInput
-              style={styles.input}
-              placeholder="Reference ID"
-              placeholderTextColor="#6c757d"
-              value={referenceId}
-              onChangeText={setReferenceId}
-            />
-          )}
-        </View>
-
-        {/* Conditional Button */}
-        {showButton && (
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.nextButton} onPress={handleNext(role)}>
-              <Text style={styles.nextButtonText}>Next</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  </SafeAreaView>
-);
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -395,7 +403,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 150,
   },
-
   nextButtonText: {
     color: "#00B4D8",
     fontSize: 16,
