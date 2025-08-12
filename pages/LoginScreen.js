@@ -38,7 +38,8 @@ export default function LoginScreen() {
       .then((response) => response.json())
       .then((data) => {
         console.log(data);
-        handleDashboard()
+        navigation.navigate("MainTabNavigator");
+        // handleDashboard()
       })
       .catch((error) => {
         alert("Login Failed", error.message);
@@ -55,9 +56,9 @@ export default function LoginScreen() {
   const handleNext = () => {
     navigation.navigate("SelectRole");
   };
-  const handleDashboard = () => {
-    navigation.navigate("MainTabs");
-  };
+  // const handleDashboard = () => {
+  //   navigation.navigate("MainTabs");
+  // };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -108,7 +109,7 @@ export default function LoginScreen() {
             >
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
-            {isLoading && ActivityIndicator}
+            {isLoading && <ActivityIndicator/>}
           </View>
 
           {/* Sign Up */}
