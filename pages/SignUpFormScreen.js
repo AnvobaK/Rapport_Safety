@@ -46,7 +46,7 @@ export default function SignUpFormScreen() {
     user = modelJsonOnRole(role)
     console.log("Role selected:", role);
     console.log("User details:", user)
-    
+
     navigation.navigate("SignUpProfile", user);
   };
 
