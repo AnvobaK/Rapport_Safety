@@ -9,6 +9,7 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserPreferences } from "../context/UserPreferencesContext";
@@ -175,6 +176,7 @@ const ContactsScreen = ({ navigation }) => {
         <Text style={[styles.membersTitle, { color: theme.accentText }]}>
           Members
         </Text>
+        {isLoading && <ActivityIndicator/>}
         <FlatList
           data={filteredContacts}
           renderItem={renderContactItem}
