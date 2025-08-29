@@ -18,14 +18,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import { Audio } from "expo-av";
+import { getTheme } from "../context/theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Audio } from "expo-av";
-import { useNavigation } from "@react-navigation/native";
 import { useChats } from "../context/ChatsContext";
 import { useUserContext } from "../context/userContext";
 import { useUserPreferences } from "../context/UserPreferencesContext";
-import { getTheme } from "../context/theme";
 
 const { width, height } = Dimensions.get("window");
 
@@ -43,13 +42,48 @@ const ChatScreen = ({ navigation, route }) => {
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sound, setSound] = useState(null);
+  const [roomId, setRoomId] = useState("");
+  const { userId } = useUserContext();
 
   const flatListRef = useRef(null);
-  const recordingRef = useRef(null);
 
   // Find the chat for this contact
   const chat = chats.find((c) => c.contact.id === contact.id);
   const messages = chat?.messages || [];
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const createOrGetChatRoom = async () => {
+      try {
+        const reqOptions = {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            user1: userId,
+            user2: contact.id
+          })
+        };
+        
+        const response = await fetch(
+          'https://rapport-backend.onrender.com/chat/single/create',
+          reqOptions
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setRoomId(data.id);
+      } catch (error) {
+        console.error('Error creating/retrieving chat room:', error);
+        Alert.alert("Error", "Failed to initialize chat room. Please try again.");
+      }
+    };
+
+    createOrGetChatRoom();
+  }, []);
 
   useEffect(() => {
     if (!chat) {
@@ -64,22 +98,50 @@ const ChatScreen = ({ navigation, route }) => {
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: message.trim(),
-        sender: "me",
-        senderAvatar: profileImage || "https://i.pravatar.cc/100?img=11",
-        senderName:
-          profileData?.firstName && profileData?.lastName
-            ? `${profileData.firstName} ${profileData.lastName}`
-            : "You",
-        timestamp: new Date().toISOString(),
-        type: "text",
-      };
+  const handleSendMessage = async () => {
+    if (!message.trim() || !roomId) return;
+
+    const newMessage = {
+      id: Date.now().toString(),
+      content: message,
+      sender: "me",
+      senderId: userId,
+      senderName: profileData?.firstName && profileData?.lastName
+        ? `${profileData.firstName} ${profileData.lastName}`
+        : "You",
+      senderAvatar: profileImage || "https://i.pravatar.cc/100?img=11",
+      timestamp: new Date().toISOString(),
+      type: "text"
+    };
+
+    try {
+      const response = await fetch('https://rapport-backend.onrender.com/chat/message/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId,
+          senderId: userId,
+          senderName: newMessage.senderName,
+          content: message,
+          messageType: 'text'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log('Message sent successfully:', responseData);
+      
+      // Add the message to local state
       addMessage(contact.id, newMessage);
       setMessage("");
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert("Error", "Failed to send message. Please try again.");
     }
   };
 
