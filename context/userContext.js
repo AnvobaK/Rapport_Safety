@@ -1,10 +1,27 @@
 // userContext.js
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [profileImage, setProfileImage] = useState(null);
+  const [userId, setUserId] = useState(null);
+
+  // Load userId from storage when the app starts
+  useEffect(() => {
+    const loadUserId = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      } catch (error) {
+        console.error('Failed to load userId', error);
+      }
+    };
+    loadUserId();
+  }, []);
 
   // Add all profile data to context
   const [profileData, setProfileData] = useState({
@@ -34,9 +51,32 @@ export const UserProvider = ({ children }) => {
     }));
   };
 
+  // Function to set and store the user ID
+  const setAndStoreUserId = async (id) => {
+    try {
+      setUserId(id);
+      await AsyncStorage.setItem('userId', id);
+    } catch (error) {
+      console.error('Failed to save userId', error);
+    }
+  };
+
+  // Function to clear user ID on logout
+  const clearUserId = async () => {
+    try {
+      setUserId(null);
+      await AsyncStorage.removeItem('userId');
+    } catch (error) {
+      console.error('Failed to clear userId', error);
+    }
+  };
+
   return (
     <UserContext.Provider
       value={{
+        userId,
+        setUserId: setAndStoreUserId,
+        clearUserId,
         profileImage,
         setProfileImage,
         profileData,

@@ -35,6 +35,7 @@ const ContactsScreen = ({ navigation }) => {
       .then((response) => response.json())
       .then(({ data }) => {
         const processedUsers = data.map(user => ({
+          id: user._id,
           name: `${user.firstName} ${user.lastName}`,
           avatar: user.avatar || 'https://i.pravatar.cc/100?img=' + Math.floor(Math.random() * 70),
           status: Math.random() > 0.5 ? 'Online' : `Last seen ${Math.floor(Math.random() * 24)} hours ago`,

@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { useUserContext } from "../context/userContext";
 import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation();
+  const { setUserId } = useUserContext();
 
   const handleLogin = () => {
     console.log("Login with:", username, password);
@@ -38,6 +40,14 @@ export default function LoginScreen() {
       .then((response) => response.json())
       .then((data) => {
         console.log(data);
+        // Store the user ID from the response
+        if (data.userId) {
+          setUserId(data.userId);
+        } else if (data._id) { // In case the ID is in _id field
+          setUserId(data._id);
+        } else if (data.data?._id) { // If the response is nested in data object
+          setUserId(data.data._id);
+        }
         navigation.navigate("MainTabNavigator");
       })
       .catch((error) => {
