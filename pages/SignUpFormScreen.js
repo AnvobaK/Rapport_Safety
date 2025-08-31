@@ -8,11 +8,8 @@ import {
   SafeAreaView,
   StatusBar,
   ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  KeyboardAvoidingView,
-  KeyboardAvoidingViewComponent,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useRoute } from "@react-navigation/native";
@@ -21,6 +18,7 @@ export default function SignUpFormScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const role = route.params?.role;
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,6 +31,7 @@ export default function SignUpFormScreen() {
   const [indexNumber, setIndexNumber] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [showButton, setShowButton] = useState(false);
+
   const handleScroll = (event) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isBottom =
@@ -43,8 +42,69 @@ export default function SignUpFormScreen() {
     }
   };
 
-  const handleNext = () => {
-    navigation.navigate("SignUpProfile");
+  const handleNext = (role) => {
+    user = modelJsonOnRole(role)
+    console.log("Role selected:", role);
+    console.log("User details:", user)
+
+    navigation.navigate("SignUpProfile", user);
+  };
+
+  const modelJsonOnRole = (role) => {
+    userDetails = {};
+    switch (role) {
+      case "student":
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          role: role,
+          email: email,
+          birthDate: "2000-01-15T00:00:00Z",
+          phoneNumber: phoneNumber,
+          hostel: hostelName,
+          college: college,
+          refId: referenceId,
+        };
+        break;
+      case "ta":
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          role: role,
+          email: email,
+          birthDate: "2005-08-12T00:00:00Z",
+          phoneNumber: phoneNumber,
+          department: department,
+          college: college,
+          staffId: staffId,
+        };
+        break;
+      case "lecturer":
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          role: role,
+          email: email,
+          birthDate: "1982-04-15T00:00:00Z",
+          phoneNumber: phoneNumber,
+          department: department,
+          college: college,
+          staffId: staffId,
+        };
+        break
+      default:
+        userDetails = {
+          firstName: firstName,
+          lastName: lastName,
+          role: "other",
+          email: email,
+          birthDate: "1982-04-15T00:00:00Z",
+          phoneNumber: phoneNumber,
+          staffId: staffId,
+        };
+    }
+
+    return userDetails;
   };
 
   return (
@@ -159,7 +219,7 @@ export default function SignUpFormScreen() {
             )}
 
             {/* College */}
-            {role === "student" && (
+            {role !== "other" && (
               <TextInput
                 style={styles.input}
                 placeholder="College"
@@ -169,7 +229,7 @@ export default function SignUpFormScreen() {
               />
             )}
 
-            {/* Department (for Lecturer, TA, Student) */}
+            {/* Department */}
             {(role === "lecturer" || role === "ta" || role === "student") && (
               <TextInput
                 style={styles.input}
@@ -180,7 +240,7 @@ export default function SignUpFormScreen() {
               />
             )}
 
-            {/* Staff ID (for Lecturer only) */}
+            {/* Staff ID */}
             {role === "lecturer" && (
               <TextInput
                 style={styles.input}
@@ -191,7 +251,7 @@ export default function SignUpFormScreen() {
               />
             )}
 
-            {/* Index Number (for Student only) */}
+            {/* Index Number */}
             {role === "student" && (
               <TextInput
                 style={styles.input}
@@ -202,7 +262,7 @@ export default function SignUpFormScreen() {
               />
             )}
 
-            {/* Reference ID (for Student only) */}
+            {/* Reference ID */}
             {role === "student" && (
               <TextInput
                 style={styles.input}
@@ -217,7 +277,10 @@ export default function SignUpFormScreen() {
           {/* Conditional Button */}
           {showButton && (
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+              <TouchableOpacity
+                style={styles.nextButton}
+                onPress={() => handleNext(role)}
+              >
                 <Text style={styles.nextButtonText}>Next</Text>
               </TouchableOpacity>
             </View>
@@ -340,7 +403,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 150,
   },
-
   nextButtonText: {
     color: "#00B4D8",
     fontSize: 16,

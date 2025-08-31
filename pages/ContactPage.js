@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserPreferences } from "../context/UserPreferencesContext";
@@ -20,66 +21,47 @@ const ContactsScreen = ({ navigation }) => {
   const theme = getTheme(isDarkMode);
 
   const [searchText, setSearchText] = useState("");
+  const [contacts, setContacts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Sample contact data - replace with your actual data
-  const contacts = [
-    {
-      id: "1",
-      name: "Amber Bird",
-      avatar: "https://i.pravatar.cc/100?img=1",
-      status: "Online",
-      lastSeen: "2 minutes ago",
-    },
-    {
-      id: "2",
-      name: "Annabel Mayor",
-      avatar: "https://i.pravatar.cc/100?img=2",
-      status: "Last seen 1 hour ago",
-      lastSeen: "1 hour ago",
-    },
-    {
-      id: "3",
-      name: "Arnold Gold",
-      avatar: "https://i.pravatar.cc/100?img=3",
-      status: "Online",
-      lastSeen: "5 minutes ago",
-    },
-    {
-      id: "4",
-      name: "Barney Baines",
-      avatar: "https://i.pravatar.cc/100?img=4",
-      status: "Last seen 30 minutes ago",
-      lastSeen: "30 minutes ago",
-    },
-    {
-      id: "5",
-      name: "Betty Booze",
-      avatar: "https://i.pravatar.cc/100?img=5",
-      status: "Online",
-      lastSeen: "1 minute ago",
-    },
-    {
-      id: "6",
-      name: "Bill Rich",
-      avatar: "https://i.pravatar.cc/100?img=6",
-      status: "Last seen 2 hours ago",
-      lastSeen: "2 hours ago",
-    },
-    {
-      id: "7",
-      name: "Brooke Davis",
-      avatar: "https://i.pravatar.cc/100?img=7",
-      status: "Online",
-      lastSeen: "Just now",
-    },
-    {
-      id: "8",
-      name: "Brooke Dr",
-      avatar: "https://i.pravatar.cc/100?img=8",
-      status: "Last seen yesterday",
-      lastSeen: "Yesterday",
-    },
-  ];
+  // Fetch users when component mounts
+  useEffect(() => {
+    getUsers();
+  }, []);
+
+  const getUsers = () => {
+    setIsLoading(true);
+    fetch('https://rapport-backend.onrender.com/auth/')
+      .then((response) => response.json())
+      .then(({ data }) => {
+        const processedUsers = data.map(user => ({
+          id: user._id,
+          name: `${user.firstName} ${user.lastName}`,
+          avatar: user.avatar || 'https://i.pravatar.cc/100?img=' + Math.floor(Math.random() * 70),
+          status: Math.random() > 0.5 ? 'Online' : `Last seen ${Math.floor(Math.random() * 24)} hours ago`,
+          lastSeen: getRandomLastSeen()
+        }));
+        setContacts(processedUsers);
+      })
+      .catch(error => console.error('Error fetching users:', error))
+      .finally(() => setIsLoading(false));
+  }
+
+  // Helper function to generate random last seen times
+  const getRandomLastSeen = () => {
+    const times = [
+      'Just now',
+      '1 minute ago',
+      '5 minutes ago',
+      '10 minutes ago',
+      '30 minutes ago',
+      '1 hour ago',
+      '2 hours ago',
+      'Yesterday',
+      '2 days ago'
+    ];
+    return times[Math.floor(Math.random() * times.length)];
+  }
 
   const handleBack = () => {};
 
@@ -195,6 +177,7 @@ const ContactsScreen = ({ navigation }) => {
         <Text style={[styles.membersTitle, { color: theme.accentText }]}>
           Members
         </Text>
+        {isLoading && <ActivityIndicator/>}
         <FlatList
           data={filteredContacts}
           renderItem={renderContactItem}

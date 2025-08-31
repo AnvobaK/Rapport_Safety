@@ -61,7 +61,7 @@ function RootStack() {
       screenOptions={{
         headerShown: false,
       }}
-      initialRouteName={isFirstTimeUser ? "CommunityRules" : "MainTabNavigator"}
+      initialRouteName={isFirstTimeUser ? "Splash" : "MainTabNavigator"}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="MainTabNavigator" component={MainTabNavigator} />
