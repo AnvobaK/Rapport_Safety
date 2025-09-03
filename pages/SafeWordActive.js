@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,8 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
-  Dimensions,
   SafeAreaView,
 } from "react-native";
-import { Ionicons, Entypo } from "@expo/vector-icons";
 import BottomNavigation from "../components/BottomNavigation";
 import { useNavigation } from "@react-navigation/native";
 
@@ -132,16 +130,6 @@ const SOSActiveScreen = () => {
               </View>
             </View>
           )}
-          {/* 
-          {activated && (
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Entypo name="cross" size={24} color="#F23F42" />
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          )} */}
         </View>
       </View>
       <BottomNavigation />
