@@ -8,8 +8,8 @@ import {
   Easing,
   SafeAreaView,
 } from "react-native";
-import BottomNavigation from "../components/BottomNavigation";
 import { useNavigation } from "@react-navigation/native";
+import BottomNavigation from "../components/BottomNavigation";
 
 const SOSActiveScreen = () => {
   const [activated, setActivated] = useState(true);

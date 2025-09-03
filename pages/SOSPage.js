@@ -7,11 +7,11 @@ import {
   Dimensions,
   SafeAreaView,
 } from "react-native";
+import { getTheme } from "../context/theme";
+import LottieView from "lottie-react-native";
 import { Ionicons, Entypo } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUserPreferences } from "../context/UserPreferencesContext";
-import { getTheme } from "../context/theme";
-import LottieView from "lottie-react-native";
 
 const SOSScreen = () => {
   const [activated, setActivated] = useState(true);

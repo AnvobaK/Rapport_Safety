@@ -1,20 +1,32 @@
-import React, { useEffect } from 'react';
-import { PorcupineManager } from '@picovoice/porcupine-react-native';
+import { useEffect } from "react";
+import { PorcupineManager } from "@picovoice/porcupine-react-native";
 
-const ACCESS_KEY = 'SWb1iriZG9JvmlQTCJGbaK5cvrkdop15NBsutNJylFzYjgAdpDiDZg==';
-const KEYWORD_PATH = 'assets/keywords/Blueberry_en_android_v3_0_0.ppn'; 
+const ACCESS_KEY = "SWb1iriZG9JvmlQTCJGbaK5cvrkdop15NBsutNJylFzYjgAdpDiDZg==";
+const KEYWORD_PATH = "assets/keywords/Blueberry_en_android_v3_0_0.ppn";
 
 export default function WakeWordListener() {
   useEffect(() => {
     let porcupineManager;
 
     const initPorcupine = async () => {
-      porcupineManager = await PorcupineManager.fromKeywordPaths(
-        ACCESS_KEY,
-        [KEYWORD_PATH],
-        wakeWordDetected
-      );
-      await porcupineManager.start();
+      try {
+        // Request microphone permission first
+        const granted = await requestMicrophonePermission();
+        if (!granted) {
+          console.log("Microphone permission denied");
+          return;
+        }
+
+        porcupineManager = await PorcupineManager.fromKeywordPaths(
+          ACCESS_KEY,
+          [KEYWORD_PATH],
+          wakeWordDetected
+        );
+        await porcupineManager.start();
+        console.log("Porcupine started successfully");
+      } catch (error) {
+        console.error("Failed to initialize Porcupine:", error);
+      }
     };
 
     const wakeWordDetected = (keywordIndex) => {
