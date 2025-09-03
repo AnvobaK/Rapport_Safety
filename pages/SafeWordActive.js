@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,46 @@ import {
   Animated,
   Easing,
   SafeAreaView,
+  Alert,
+  Platform,
+  PermissionsAndroid,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import BottomNavigation from "../components/BottomNavigation";
+import { PorcupineManager } from "@picovoice/porcupine-react-native";
+
+const KEYWORD_PATH = "assets/keywords/Blueberry_en_android_v3_0_0.ppn";
+const ACCESS_KEY = "SWb1iriZG9JvmlQTCJGbaK5cvrkdop15NBsutNJylFzYjgAdpDiDZg==";
 
 const SOSActiveScreen = () => {
   const [activated, setActivated] = useState(true);
-  const pulseAnim = new Animated.Value(1);
-  const rotateAnim = new Animated.Value(0);
+  const [isListening, setIsListening] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const porcupineManagerRef = useRef(null);
+
+  // Request microphone permission
+  const requestMicrophonePermission = async () => {
+    if (Platform.OS === "android") {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: "Microphone Permission",
+            message: "This app needs microphone access to detect wake words",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.error("Permission error:", err);
+        return false;
+      }
+    }
+    return true; // For iOS, you'll need additional handling
+  };
 
   // Start animations when activated
   useEffect(() => {
@@ -47,11 +79,63 @@ const SOSActiveScreen = () => {
         })
       ).start();
     } else {
-      // Reset animations
+      // Stop animations and reset
       pulseAnim.setValue(1);
       rotateAnim.setValue(0);
+      // Stop all animations
+      pulseAnim.stopAnimation();
+      rotateAnim.stopAnimation();
     }
   }, [activated]);
+
+  useEffect(() => {
+    initializeWakeWord();
+
+    return () => {
+      // Cleanup when component unmounts
+      if (porcupineManagerRef.current) {
+        porcupineManagerRef.current.stop();
+      }
+    };
+  }, []);
+
+  const initializeWakeWord = async () => {
+    try {
+      const granted = await requestMicrophonePermission();
+      if (!granted) {
+        Alert.alert(
+          "Permission Required",
+          "Microphone access is needed for wake word detection"
+        );
+        return;
+      }
+
+      const manager = await PorcupineManager.fromKeywordPaths(
+        ACCESS_KEY,
+        [KEYWORD_PATH],
+        wakeWordDetected,
+        (error) => {
+          console.error("Porcupine error:", error);
+        }
+      );
+
+      porcupineManagerRef.current = manager;
+      await manager.start();
+      setIsListening(true);
+      console.log("Porcupine started successfully");
+    } catch (error) {
+      console.error("Failed to initialize Porcupine:", error);
+      Alert.alert("Error", "Could not start wake word detection");
+    }
+  };
+
+  const wakeWordDetected = (keywordIndex) => {
+    console.log(`Wake word detected: ${keywordIndex}`);
+    setActivated(true); // Activate SOS UI when wake word is detected
+
+    // Optional: Show alert or feedback
+    Alert.alert("Wake Word Detected", "SOS activated!");
+  };
 
   // Convert rotation value to degrees
   const spin = rotateAnim.interpolate({
@@ -65,9 +149,20 @@ const SOSActiveScreen = () => {
     setActivated(true);
   };
 
+  const handleCancelSOS = () => {
+    setActivated(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
+        {/* Status indicator */}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusText}>
+            Wake Word: {isListening ? "Listening..." : "Disabled"}
+          </Text>
+        </View>
+
         {/* Main content area */}
         <View style={styles.content}>
           {activated && (
@@ -128,6 +223,13 @@ const SOSActiveScreen = () => {
                   safety {"\n"}proxy.
                 </Text>
               </View>
+
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelSOS}
+              >
+                <Text style={styles.cancelText}>Cancel SOS</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -138,6 +240,30 @@ const SOSActiveScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    statusContainer: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 8,
+    borderRadius: 8,
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+  },
+  cancelButton: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: 'rgba(242, 63, 66, 0.2)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelText: {
+    color: '#F23F42',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
     backgroundColor: "#001133",
