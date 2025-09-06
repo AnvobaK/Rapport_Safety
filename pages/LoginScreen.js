@@ -1,24 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
+import { useUserContext } from "../context/userContext";
 import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
+  const [isLoading, setIsLoading] = useState(false)
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation();
+  const { setUserId } = useUserContext();
 
   const handleLogin = () => {
     console.log("Login with:", username, password);
-    navigation.navigate("Welcome");
+
+    const requestOptions = {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        "usernameOrEmail": username,
+        "password": password
+      })
+    }
+
+    setIsLoading(true)
+    fetch(
+      `https://rapport-backend.onrender.com/auth/login`,
+      requestOptions
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        // Store the user ID from the response
+        if (data.userId) {
+          setUserId(data.userId);
+        } else if (data._id) { // In case the ID is in _id field
+          setUserId(data._id);
+        } else if (data.data?._id) { // If the response is nested in data object
+          setUserId(data.data._id);
+        }
+        navigation.navigate("MainTabNavigator");
+      })
+      .catch((error) => {
+        alert("Login Failed", error.message);
+        console.error("Error:", error);
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
   };
 
   const handleForgotPassword = () => {
@@ -26,9 +64,6 @@ export default function LoginScreen() {
   };
   const handleNext = () => {
     navigation.navigate("SelectRole");
-  };
-  const handleDashboard = () => {
-    navigation.navigate("MainTabs");
   };
 
   return (
@@ -76,10 +111,11 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={handleDashboard}
+              onPress={handleLogin}
             >
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
+            {isLoading && <ActivityIndicator/>}
           </View>
 
           {/* Sign Up */}

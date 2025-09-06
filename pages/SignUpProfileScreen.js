@@ -11,19 +11,51 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  ActivityIndicator
 } from "react-native";
 import * as ImagePicker from "expo-image-picker"; // <-- Import Image Picker
+import { useRoute } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 
 export default function SignUpProfileScreen() {
+  const route = useRoute();
   const navigation = useNavigation();
+  const [isLoading, setIsLoading] = useState(false)
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [profileImage, setProfileImage] = useState();
 
   const handleComplete = () => {
-    navigation.navigate("LogIn");
+    const userDetails = {
+      ...route.params,
+      password,
+      username,
+    };
+
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userDetails),
+    };
+
+    setIsLoading(true)
+    fetch(
+      `https://rapport-backend.onrender.com/auth/register/${userDetails.role}`,
+      requestOptions
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        navigation.navigate("LogIn");
+      })
+      .catch((error) => {
+        alert("Registration Failed", error.message);
+        console.error("Error:", error);
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
   };
 
   const handleChangeProfilePicture = async () => {
@@ -123,6 +155,7 @@ export default function SignUpProfileScreen() {
             >
               <Text style={styles.completeButtonText}>Complete</Text>
             </TouchableOpacity>
+            {isLoading && <ActivityIndicator/>}
 
             {/* Terms and Privacy */}
             <View style={styles.termsContainer}>
