@@ -28,29 +28,34 @@ const GlobalChatScreen = ({ navigation }) => {
   const userContext = useUserContext();
   const { userId } = userContext;
   const [input, setInput] = useState("");
+  const [sound, setSound] = useState(null);
+  const [chats, setChats] = useState([])
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [sound, setSound] = useState(null);
   const [videoModal, setVideoModal] = useState({ visible: false, uri: null });
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const flatListRef = useRef(null);
 
   const socket = new WebSocket(`ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`)
 
-  const chats = []
-  useEffect( async () => {
-    try {
-      await fetch(
-        "https://rapport-backend-onrender.com/chat/community"
-      )
-  
-      const data = await response.json();
-      chats = data
-      senderId
-    } catch (error) {
-      console.error('Error fetching community chats:', error);
-      Alert.alert("Error", "Failed to fetch community chat. Please try again.");
+  useEffect(() => {
+
+    const getCommunityChats = async() => {
+      try {
+        const response = await fetch(
+          "https://rapport-backend.onrender.com/chat/community"
+        )
+
+        const data = await response.json();
+        console.log("Chats in database:", data)
+        setChats(data)
+      } catch (error) {
+        console.error('Error fetching community chats:', error);
+        Alert.alert("Error", "Failed to fetch community chat. Please try again.");
+      }
     }
+
+    getCommunityChats()
   }, [])
 
   useEffect(() => {
