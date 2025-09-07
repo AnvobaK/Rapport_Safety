@@ -26,6 +26,7 @@ import { useUserContext } from "../context/userContext";
 const GlobalChatScreen = ({ navigation }) => {
   const { messages, addMessage } = useGlobalChat();
   const userContext = useUserContext();
+  const { userId } = userContext;
   const [input, setInput] = useState("");
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -34,7 +35,7 @@ const GlobalChatScreen = ({ navigation }) => {
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const flatListRef = useRef(null);
 
-  // const socket = new WebSocket('ws://rapport-backend-onrender.com/?userId={}&roomId={}')
+  const socket = new WebSocket(`ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`)
 
   const chats = []
   useEffect( async () => {
@@ -42,20 +43,14 @@ const GlobalChatScreen = ({ navigation }) => {
       await fetch(
         "https://rapport-backend-onrender.com/chat/community"
       )
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
+  
       const data = await response.json();
-      chats = data;
-      
+      chats = data
+      senderId
     } catch (error) {
-      console.error('Error fetching community chat:', error);
+      console.error('Error fetching community chats:', error);
       Alert.alert("Error", "Failed to fetch community chat. Please try again.");
     }
-    
-    
   }, [])
 
   useEffect(() => {
@@ -63,9 +58,6 @@ const GlobalChatScreen = ({ navigation }) => {
       flatListRef.current.scrollToEnd({ animated: true });
     }
   }, [messages]);
-
-  // Use email as userId (unique per user)
-  const getMyUserId = () => userContext.profileData.email;
 
   const getMyName = () => {
     const { profileData } = userContext;
@@ -81,10 +73,30 @@ const GlobalChatScreen = ({ navigation }) => {
     return "https://i.pravatar.cc/100?img=11";
   };
 
-  const handleSend = () => {
-    if (input.trim()) {
-      addMessage(input.trim(), getMyUserId(), true, "text");
+  const handleSend = async () => {
+    try {
+      const requestOptions = {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          "roomId": "68bc5cbbcd8d68664a8220fa",
+          "senderId": userId,
+          "senderName": getMyName(),
+          "content": input,
+          "messageType": "text"
+        })
+      }
+      if (input.trim()) {
+        addMessage(input.trim(), userId, true, "text");
+      }
+
+      await fetch("https://rapport-backend-onrender.com/chat/message/send")
+      
       setInput("");
+    } catch (error) {
+      alert("Error", "Failed to send message. Please try again.");
+      console.error("Err:",error)
+      return
     }
   };
 
@@ -97,7 +109,7 @@ const GlobalChatScreen = ({ navigation }) => {
         quality: 1,
       });
       if (!result.canceled) {
-        addMessage("", getMyUserId(), true, "image", result.assets[0].uri);
+        addMessage("", userId, true, "image", result.assets[0].uri);
         setShowMediaOptions(false);
       }
     } catch (error) {
@@ -114,7 +126,7 @@ const GlobalChatScreen = ({ navigation }) => {
         quality: 1,
       });
       if (!result.canceled) {
-        addMessage("", getMyUserId(), true, "video", result.assets[0].uri);
+        addMessage("", userId, true, "video", result.assets[0].uri);
         setShowMediaOptions(false);
       }
     } catch (error) {
@@ -155,7 +167,7 @@ const GlobalChatScreen = ({ navigation }) => {
       setRecording(null);
       setIsRecording(false);
       if (uri) {
-        addMessage("", getMyUserId(), true, "audio", uri);
+        addMessage("", userId, true, "audio", uri);
       }
     } catch (error) {
       Alert.alert("Error", "Failed to stop recording");
@@ -179,7 +191,7 @@ const GlobalChatScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     let name, avatar;
-    if (item.userId === getMyUserId()) {
+    if (item.userId === userId) {
       // Current user: always use latest from context
       name = `${userContext.profileData.firstName} ${userContext.profileData.lastName}`;
       avatar = userContext.profileImage
@@ -193,7 +205,7 @@ const GlobalChatScreen = ({ navigation }) => {
       name = "Unknown";
       avatar = require("../images/Group 39429.png");
     }
-    const isMe = item.userId === getMyUserId();
+    const isMe = item.userId === userId;
     return (
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
         {!isMe && <Image source={avatar} style={styles.avatar} />}
