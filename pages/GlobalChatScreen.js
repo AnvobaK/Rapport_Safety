@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -26,22 +26,43 @@ import { useUserContext } from "../context/userContext";
 const GlobalChatScreen = ({ navigation }) => {
   const { messages, addMessage } = useGlobalChat();
   const userContext = useUserContext();
+  const { userId } = userContext;
   const [input, setInput] = useState("");
+  const [sound, setSound] = useState(null);
+  const [chats, setChats] = useState([])
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [sound, setSound] = useState(null);
   const [videoModal, setVideoModal] = useState({ visible: false, uri: null });
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const flatListRef = useRef(null);
+
+  const socket = new WebSocket(`ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`)
+
+  useEffect(() => {
+
+    const getCommunityChats = async() => {
+      try {
+        const response = await fetch(
+          "https://rapport-backend.onrender.com/chat/community"
+        )
+
+        const data = await response.json();
+        console.log("Chats in database:", data)
+        setChats(data)
+      } catch (error) {
+        console.error('Error fetching community chats:', error);
+        Alert.alert("Error", "Failed to fetch community chat. Please try again.");
+      }
+    }
+
+    getCommunityChats()
+  }, [])
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
       flatListRef.current.scrollToEnd({ animated: true });
     }
   }, [messages]);
-
-  // Use email as userId (unique per user)
-  const getMyUserId = () => userContext.profileData.email;
 
   const getMyName = () => {
     const { profileData } = userContext;
@@ -57,10 +78,30 @@ const GlobalChatScreen = ({ navigation }) => {
     return "https://i.pravatar.cc/100?img=11";
   };
 
-  const handleSend = () => {
-    if (input.trim()) {
-      addMessage(input.trim(), getMyUserId(), true, "text");
+  const handleSend = async () => {
+    try {
+      const requestOptions = {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          "roomId": "68bc5cbbcd8d68664a8220fa",
+          "senderId": userId,
+          "senderName": getMyName(),
+          "content": input,
+          "messageType": "text"
+        })
+      }
+      if (input.trim()) {
+        addMessage(input.trim(), userId, true, "text");
+      }
+
+      await fetch("https://rapport-backend-onrender.com/chat/message/send")
+      
       setInput("");
+    } catch (error) {
+      alert("Error", "Failed to send message. Please try again.");
+      console.error("Err:",error)
+      return
     }
   };
 
@@ -73,7 +114,7 @@ const GlobalChatScreen = ({ navigation }) => {
         quality: 1,
       });
       if (!result.canceled) {
-        addMessage("", getMyUserId(), true, "image", result.assets[0].uri);
+        addMessage("", userId, true, "image", result.assets[0].uri);
         setShowMediaOptions(false);
       }
     } catch (error) {
@@ -90,7 +131,7 @@ const GlobalChatScreen = ({ navigation }) => {
         quality: 1,
       });
       if (!result.canceled) {
-        addMessage("", getMyUserId(), true, "video", result.assets[0].uri);
+        addMessage("", userId, true, "video", result.assets[0].uri);
         setShowMediaOptions(false);
       }
     } catch (error) {
@@ -131,7 +172,7 @@ const GlobalChatScreen = ({ navigation }) => {
       setRecording(null);
       setIsRecording(false);
       if (uri) {
-        addMessage("", getMyUserId(), true, "audio", uri);
+        addMessage("", userId, true, "audio", uri);
       }
     } catch (error) {
       Alert.alert("Error", "Failed to stop recording");
@@ -155,7 +196,7 @@ const GlobalChatScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     let name, avatar;
-    if (item.userId === getMyUserId()) {
+    if (item.userId === userId) {
       // Current user: always use latest from context
       name = `${userContext.profileData.firstName} ${userContext.profileData.lastName}`;
       avatar = userContext.profileImage
@@ -169,7 +210,7 @@ const GlobalChatScreen = ({ navigation }) => {
       name = "Unknown";
       avatar = require("../images/Group 39429.png");
     }
-    const isMe = item.userId === getMyUserId();
+    const isMe = item.userId === userId;
     return (
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
         {!isMe && <Image source={avatar} style={styles.avatar} />}
@@ -261,6 +302,7 @@ const GlobalChatScreen = ({ navigation }) => {
           >
             <Ionicons name="add" size={28} color="#00C6FF" />
           </TouchableOpacity>
+          {/* TODO: Implement sending chat feature here */}
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -306,7 +348,7 @@ const GlobalChatScreen = ({ navigation }) => {
               onPress={handleVideoPicker}
             >
               <View style={[styles.mediaIcon, { backgroundColor: "#f87171" }]}>
-                <Ionicons name="videocam" size={24} color="#fff" />
+                <Ionicons name="video_cam" size={24} color="#fff" />
               </View>
               <Text style={styles.mediaOptionText}>Video</Text>
             </TouchableOpacity>

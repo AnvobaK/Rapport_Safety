@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -40,19 +40,15 @@ export default function LoginScreen() {
       .then((response) => response.json())
       .then((data) => {
         console.log(data);
-        // Store the user ID from the response
-        if (data.userId) {
-          setUserId(data.userId);
-        } else if (data._id) { // In case the ID is in _id field
+        if (data._id) {
           setUserId(data._id);
-        } else if (data.data?._id) { // If the response is nested in data object
-          setUserId(data.data._id);
         }
         navigation.navigate("MainTabNavigator");
       })
       .catch((error) => {
         alert("Login Failed", error.message);
         console.error("Error:", error);
+        return
       })
       .finally(() => {
         setIsLoading(false)

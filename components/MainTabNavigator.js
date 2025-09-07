@@ -8,20 +8,18 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import { useUserPreferences } from "../context/UserPreferencesContext";
 import { getTheme } from "../context/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useUserPreferences } from "../context/UserPreferencesContext";
+import { Feather, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 
 // Import your main screens
-import Dashboard from "../pages/Dashboard";
-import LocationScreen from "../pages/LocationScreen";
-import CommunityPage from "../pages/CommunityPage";
-import CommunityRulesScreen from "../pages/CommunityRulesScreen";
-import InitialChatScreen from "../pages/InitialChatScreen";
-import SOSPage from "../pages/SOSPage";
 import ChatStack from "./ChatStack";
-import SOSActiveScreen from "../pages/SOSactive";
+import SOSPage from "../pages/SOSPage";
+import Dashboard from "../pages/Dashboard";
+import CommunityPage from "../pages/CommunityPage";
+import LocationScreen from "../pages/LocationScreen";
+import CommunityRulesScreen from "../pages/CommunityRulesScreen";
 
 const Tab = createBottomTabNavigator();
 const { width: screenWidth } = Dimensions.get("window");
