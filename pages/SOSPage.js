@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Platform,
   Dimensions,
+  PermissionsAndroid,
   SafeAreaView,
 } from "react-native";
 import { getTheme } from "../context/theme";
@@ -12,12 +14,87 @@ import LottieView from "lottie-react-native";
 import { Ionicons, Entypo } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUserPreferences } from "../context/UserPreferencesContext";
+import { Porcupine, PorcupineManager, PorcupineErrors } from "@picovoice/porcupine-react-native";
 
 const SOSScreen = () => {
   const [activated, setActivated] = useState(true);
   const { isDarkMode } = useUserPreferences();
   const theme = getTheme(isDarkMode);
   const navigation = useNavigation();
+
+  const ACCESS_KEY = "SWb1iriZG9JvmlQTCJGbaK5cvrkdop15NBsutNJylFzYjgAdpDiDZg==";
+
+    useEffect(() => {
+      let porcupine = null;
+
+      const initializePorcupine = async () => {
+        try {
+          this._porcupineManager = await PorcupineManager.fromKeywordPaths(
+            ACCESS_KEY
+            ["assets/keywords/Blueberry_en_android_v3_0_0.ppn"],
+          );
+        if (Platform.OS === "android") {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            {
+              title: "Microphone Permission",
+              message:
+                "This app needs access to your microphone for wake word detection",
+              buttonNeutral: "Ask Me Later",
+              buttonNegative: "Cancel",
+              buttonPositive: "Ok",
+            }
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            throw new Error("Microphone permissions denied");
+          }
+        }
+
+        const keywordPath = Platform.select({
+          ios: "Blueberry_en_ios_v3_0_0.ppn", // Make sure this file exists for iOS
+          android: "assets/keywords/Blueberry_en_android_v3_0_0.ppn",
+        });
+
+        porcupine = await Porcupine.fromKeywordPaths(
+          ACCESS_KEY,
+          [keywordPath],
+          [0.5]
+        );
+
+        if (!porcupine) {
+          throw new Error("Failed to create Porcupine instance");
+        }
+
+        porcupine.addListener(async (keywordIndex) => {
+          console.log(`Wake word detected: ${keywordIndex}`);
+          setWakeWordDetected(true);
+        });
+
+        porcupine.addListener((error) => {
+          console.error("Porcupine error:", error);
+          setError(error.message);
+        });
+
+        await VoiceProcessor.startAudioRecording(porcupine);
+        setIsListening(true);
+      } catch (err) {
+        console.error("Failed to initialize porcupine:", err);
+      }
+    };
+
+    initializePorcupine();
+    return async () => {
+      if (porcupine) {
+        try {
+          await VoiceProcessor.stopAudioRecording();
+          porcupine.removeAllListeners();
+          await porcupine.delete();
+        } catch (err) {
+          console.error("Error during cleanup:", err);
+        }
+      }
+    };
+  }, []);
 
   const handleSOSPress = () => {
     setActivated(true);

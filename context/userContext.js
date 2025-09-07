@@ -23,6 +23,26 @@ export const UserProvider = ({ children }) => {
     loadUserId();
   }, []);
 
+  useEffect(async () => {
+    try {
+      const requestOptions = {
+        method: "GET",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          "userId": userId
+        })
+      }
+      const response = await fetch(
+        `https://rapport-backend.onrender.com/auth/single`,
+        requestOptions
+      );
+      const data = await response.json();
+      setProfileData(data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  }, [userId]);
+
   // Add all profile data to context
   const [profileData, setProfileData] = useState({
     firstName: "Seline",

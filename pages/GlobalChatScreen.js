@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -33,6 +33,30 @@ const GlobalChatScreen = ({ navigation }) => {
   const [videoModal, setVideoModal] = useState({ visible: false, uri: null });
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const flatListRef = useRef(null);
+
+  // const socket = new WebSocket('ws://rapport-backend-onrender.com/?userId={}&roomId={}')
+
+  const chats = []
+  useEffect( async () => {
+    try {
+      await fetch(
+        "https://rapport-backend-onrender.com/chat/community"
+      )
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      chats = data;
+      
+    } catch (error) {
+      console.error('Error fetching community chat:', error);
+      Alert.alert("Error", "Failed to fetch community chat. Please try again.");
+    }
+    
+    
+  }, [])
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
@@ -261,6 +285,7 @@ const GlobalChatScreen = ({ navigation }) => {
           >
             <Ionicons name="add" size={28} color="#00C6FF" />
           </TouchableOpacity>
+          {/* TODO: Implement sending chat feature here */}
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -306,7 +331,7 @@ const GlobalChatScreen = ({ navigation }) => {
               onPress={handleVideoPicker}
             >
               <View style={[styles.mediaIcon, { backgroundColor: "#f87171" }]}>
-                <Ionicons name="videocam" size={24} color="#fff" />
+                <Ionicons name="video_cam" size={24} color="#fff" />
               </View>
               <Text style={styles.mediaOptionText}>Video</Text>
             </TouchableOpacity>
