@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import React,{ useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -13,9 +13,9 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import { Audio, Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Audio, Video } from "expo-av";
 import {
   useGlobalChat,
   SYSTEM_USER_ID,
@@ -24,39 +24,59 @@ import {
 import { useUserContext } from "../context/userContext";
 
 const GlobalChatScreen = ({ navigation }) => {
-  const { messages, addMessage } = useGlobalChat();
   const userContext = useUserContext();
   const { userId } = userContext;
+  const flatListRef = useRef(null);
   const [input, setInput] = useState("");
+  const [chats, setChats] = useState([]);
   const [sound, setSound] = useState(null);
-  const [chats, setChats] = useState([])
+  const { messages, addMessage } = useGlobalChat();
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoModal, setVideoModal] = useState({ visible: false, uri: null });
   const [showMediaOptions, setShowMediaOptions] = useState(false);
-  const flatListRef = useRef(null);
 
-  const socket = new WebSocket(`ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`)
+  const socket = new WebSocket(
+    `ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`
+  );
 
   useEffect(() => {
-
-    const getCommunityChats = async() => {
+    const getCommunityChats = async () => {
       try {
         const response = await fetch(
           "https://rapport-backend.onrender.com/chat/community"
-        )
-
+        );
         const data = await response.json();
-        console.log("Chats in database:", data)
-        setChats(data)
+        console.log("Chats in database:", data);
+        
+        // Transform the API data to match the expected message format
+        const formattedMessages = data.map(msg => ({
+          id: msg.id,
+          text: msg.content,
+          userId: msg.senderId,
+          name: msg.senderName,
+          timestamp: msg.timestamp,
+          type: msg.messageType || 'text',
+          isMe: msg.senderId === userId
+        }));
+        
+        // Update the messages in the context
+        formattedMessages.forEach(msg => {
+          addMessage(msg.text, msg.userId, msg.isMe, msg.type, null, msg.name, msg.timestamp);
+          console.log(`${msg}\n`)
+        });
+        
       } catch (error) {
-        console.error('Error fetching community chats:', error);
-        Alert.alert("Error", "Failed to fetch community chat. Please try again.");
+        console.error("Error fetching community chats:", error);
+        Alert.alert(
+          "Error",
+          "Failed to fetch community chat. Please try again."
+        );
       }
-    }
+    };
 
-    getCommunityChats()
-  }, [])
+    getCommunityChats();
+  }, [userId]);
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
@@ -64,13 +84,13 @@ const GlobalChatScreen = ({ navigation }) => {
     }
   }, [messages]);
 
-  const getMyName = () => {
-    const { profileData } = userContext;
-    if (profileData?.firstName && profileData?.lastName) {
-      return `${profileData.firstName} ${profileData.lastName}`;
-    }
-    return "You";
-  };
+  // const getMyName = () => {
+  //   const { profileData } = userContext;
+  //   if (profileData?.firstName && profileData?.lastName) {
+  //     return `${profileData.firstName} ${profileData.lastName}`;
+  //   }
+  //   return "You";
+  // };
 
   const getMyAvatar = () => {
     const { profileImage } = userContext;
@@ -80,28 +100,54 @@ const GlobalChatScreen = ({ navigation }) => {
 
   const handleSend = async () => {
     try {
-      const requestOptions = {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          "roomId": "68bc5cbbcd8d68664a8220fa",
-          "senderId": userId,
-          "senderName": getMyName(),
-          "content": input,
-          "messageType": "text"
-        })
-      }
-      if (input.trim()) {
-        addMessage(input.trim(), userId, true, "text");
+      // Get the latest profile data
+      const { profileData } = userContext;
+      
+      // Ensure we have valid user data
+      if (!profileData || !profileData.firstName) {
+        console.warn("User profile data not loaded yet");
+        return;
       }
 
-      await fetch("https://rapport-backend-onrender.com/chat/message/send")
+      const senderName = `${profileData.firstName} ${profileData.lastName || ''}`.trim();
       
+      const requestOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId: "68bc5cbbcd8d68664a8220fa",
+          senderId: userId,
+          senderName: senderName,
+          content: input,
+          messageType: "text",
+        }),
+      };
+      
+      if (input.trim()) {
+        // Add message to local state
+        addMessage(
+          input.trim(),  // text
+          userId,        // userId
+          true,          // isMe
+          "text",        // type
+          null           // media
+        );
+        
+        // Clear input field
+        setInput("");
+      }
+
+      const res = await fetch(
+        "https://rapport-backend.onrender.com/chat/message/send", requestOptions
+      );
+
+      console.log(res)
+
       setInput("");
     } catch (error) {
       alert("Error", "Failed to send message. Please try again.");
-      console.error("Err:",error)
-      return
+      console.log("Err:", error);
+      return;
     }
   };
 
@@ -195,74 +241,51 @@ const GlobalChatScreen = ({ navigation }) => {
   };
 
   const renderItem = ({ item }) => {
-    let name, avatar;
-    if (item.userId === userId) {
-      // Current user: always use latest from context
-      name = `${userContext.profileData.firstName} ${userContext.profileData.lastName}`;
-      avatar = userContext.profileImage
-        ? { uri: userContext.profileImage }
-        : require("../images/Group 39429.png");
-    } else if (item.userId === SYSTEM_USER_ID) {
-      name = "System";
-      avatar = { uri: SYSTEM_AVATAR };
-    } else {
-      // Fallback for unknown users (future multi-user support)
-      name = "Unknown";
-      avatar = require("../images/Group 39429.png");
-    }
+    // Determine if the message is from the current user
     const isMe = item.userId === userId;
+    
+    // Get sender name - use the name from the message if available, otherwise fall back to context
+    let name = item.name || (isMe 
+      ? `${userContext.profileData?.firstName || ''} ${userContext.profileData?.lastName || ''}`.trim() || 'You'
+      : 'Unknown User');
+    
+    // Handle system messages
+    if (item.userId === SYSTEM_USER_ID) {
+      name = "System";
+    }
+    
+    // Handle avatar - use profile image if available, otherwise use a default
+    let avatarSource;
+    if (isMe && userContext.profileImage) {
+      avatarSource = { uri: userContext.profileImage };
+    } else if (item.userId === SYSTEM_USER_ID) {
+      avatarSource = { uri: SYSTEM_AVATAR };
+    } else {
+      // For other users, use a default avatar
+      avatarSource = require("../images/Group 39429.png");
+    }
+    
     return (
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
-        {!isMe && <Image source={avatar} style={styles.avatar} />}
-        <View
-          style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}
-        >
-          <Text
-            style={[styles.sender, isMe ? styles.mySender : styles.otherSender]}
-          >
-            {name}
-          </Text>
+        {!isMe && <Image source={avatarSource} style={styles.avatar} />}
+        <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
+          {!isMe && (
+            <Text style={[styles.sender, styles.otherSender]}>
+              {name}
+            </Text>
+          )}
+          
           {item.type === "text" && (
-            <Text style={styles.message}>{item.text}</Text>
+            <Text style={[styles.message, isMe ? styles.myMessage : styles.otherMessage]}>
+              {item.text}
+            </Text>
           )}
-          {item.type === "image" && (
-            <Image source={{ uri: item.media }} style={styles.messageImage} />
-          )}
-          {item.type === "video" && (
-            <TouchableOpacity
-              onPress={() => setVideoModal({ visible: true, uri: item.media })}
-            >
-              <View style={styles.messageVideo}>
-                <Image
-                  source={{ uri: item.media }}
-                  style={styles.messageImage}
-                />
-                <View style={styles.playButton}>
-                  <Ionicons name="play" size={24} color="#fff" />
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
-          {item.type === "audio" && (
-            <TouchableOpacity
-              style={styles.audioMessage}
-              onPress={() => playAudio(item.media)}
-            >
-              <Ionicons name="play" size={20} color="#00C6FF" />
-              <View style={styles.audioWaveform}>
-                <View style={styles.audioBar} />
-                <View style={styles.audioBar} />
-                <View style={styles.audioBar} />
-                <View style={styles.audioBar} />
-              </View>
-              <Text style={styles.audioDuration}>Audio</Text>
-            </TouchableOpacity>
-          )}
-          <Text style={isMe ? styles.myTimestamp : styles.otherTimestamp}>
+          
+          <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.otherTimestamp]}>
             {formatTime(item.timestamp)}
           </Text>
         </View>
-        {isMe && <Image source={avatar} style={styles.avatar} />}
+        {isMe && <Image source={avatarSource} style={styles.avatar} />}
       </View>
     );
   };
