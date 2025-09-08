@@ -46,10 +46,26 @@ const GlobalChatScreen = ({ navigation }) => {
         const response = await fetch(
           "https://rapport-backend.onrender.com/chat/community"
         );
-
         const data = await response.json();
         console.log("Chats in database:", data);
-        setChats(data);
+        
+        // Transform the API data to match the expected message format
+        const formattedMessages = data.map(msg => ({
+          id: msg.id,
+          text: msg.content,
+          userId: msg.senderId,
+          name: msg.senderName,
+          timestamp: msg.timestamp,
+          type: msg.messageType || 'text',
+          isMe: msg.senderId === userId
+        }));
+        
+        // Update the messages in the context
+        formattedMessages.forEach(msg => {
+          addMessage(msg.text, msg.userId, msg.isMe, msg.type, null, msg.name, msg.timestamp);
+          console.log(`${msg}\n`)
+        });
+        
       } catch (error) {
         console.error("Error fetching community chats:", error);
         Alert.alert(
@@ -60,7 +76,7 @@ const GlobalChatScreen = ({ navigation }) => {
     };
 
     getCommunityChats();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
@@ -68,13 +84,13 @@ const GlobalChatScreen = ({ navigation }) => {
     }
   }, [messages]);
 
-  const getMyName = () => {
-    const { profileData } = userContext;
-    if (profileData?.firstName && profileData?.lastName) {
-      return `${profileData.firstName} ${profileData.lastName}`;
-    }
-    return "You";
-  };
+  // const getMyName = () => {
+  //   const { profileData } = userContext;
+  //   if (profileData?.firstName && profileData?.lastName) {
+  //     return `${profileData.firstName} ${profileData.lastName}`;
+  //   }
+  //   return "You";
+  // };
 
   const getMyAvatar = () => {
     const { profileImage } = userContext;
@@ -225,74 +241,51 @@ const GlobalChatScreen = ({ navigation }) => {
   };
 
   const renderItem = ({ item }) => {
-    let name, avatar;
-    if (item.userId === userId) {
-      // Current user: always use latest from context
-      name = `${userContext.profileData.firstName} ${userContext.profileData.lastName}`;
-      avatar = userContext.profileImage
-        ? { uri: userContext.profileImage }
-        : require("../images/Group 39429.png");
-    } else if (item.userId === SYSTEM_USER_ID) {
-      name = "System";
-      avatar = { uri: SYSTEM_AVATAR };
-    } else {
-      // Fallback for unknown users (future multi-user support)
-      name = "Unknown";
-      avatar = require("../images/Group 39429.png");
-    }
+    // Determine if the message is from the current user
     const isMe = item.userId === userId;
+    
+    // Get sender name - use the name from the message if available, otherwise fall back to context
+    let name = item.name || (isMe 
+      ? `${userContext.profileData?.firstName || ''} ${userContext.profileData?.lastName || ''}`.trim() || 'You'
+      : 'Unknown User');
+    
+    // Handle system messages
+    if (item.userId === SYSTEM_USER_ID) {
+      name = "System";
+    }
+    
+    // Handle avatar - use profile image if available, otherwise use a default
+    let avatarSource;
+    if (isMe && userContext.profileImage) {
+      avatarSource = { uri: userContext.profileImage };
+    } else if (item.userId === SYSTEM_USER_ID) {
+      avatarSource = { uri: SYSTEM_AVATAR };
+    } else {
+      // For other users, use a default avatar
+      avatarSource = require("../images/Group 39429.png");
+    }
+    
     return (
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
-        {!isMe && <Image source={avatar} style={styles.avatar} />}
-        <View
-          style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}
-        >
-          <Text
-            style={[styles.sender, isMe ? styles.mySender : styles.otherSender]}
-          >
-            {name}
-          </Text>
+        {!isMe && <Image source={avatarSource} style={styles.avatar} />}
+        <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
+          {!isMe && (
+            <Text style={[styles.sender, styles.otherSender]}>
+              {name}
+            </Text>
+          )}
+          
           {item.type === "text" && (
-            <Text style={styles.message}>{item.text}</Text>
+            <Text style={[styles.message, isMe ? styles.myMessage : styles.otherMessage]}>
+              {item.text}
+            </Text>
           )}
-          {item.type === "image" && (
-            <Image source={{ uri: item.media }} style={styles.messageImage} />
-          )}
-          {item.type === "video" && (
-            <TouchableOpacity
-              onPress={() => setVideoModal({ visible: true, uri: item.media })}
-            >
-              <View style={styles.messageVideo}>
-                <Image
-                  source={{ uri: item.media }}
-                  style={styles.messageImage}
-                />
-                <View style={styles.playButton}>
-                  <Ionicons name="play" size={24} color="#fff" />
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
-          {item.type === "audio" && (
-            <TouchableOpacity
-              style={styles.audioMessage}
-              onPress={() => playAudio(item.media)}
-            >
-              <Ionicons name="play" size={20} color="#00C6FF" />
-              <View style={styles.audioWaveform}>
-                <View style={styles.audioBar} />
-                <View style={styles.audioBar} />
-                <View style={styles.audioBar} />
-                <View style={styles.audioBar} />
-              </View>
-              <Text style={styles.audioDuration}>Audio</Text>
-            </TouchableOpacity>
-          )}
-          <Text style={isMe ? styles.myTimestamp : styles.otherTimestamp}>
+          
+          <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.otherTimestamp]}>
             {formatTime(item.timestamp)}
           </Text>
         </View>
-        {isMe && <Image source={avatar} style={styles.avatar} />}
+        {isMe && <Image source={avatarSource} style={styles.avatar} />}
       </View>
     );
   };

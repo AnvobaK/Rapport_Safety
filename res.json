@@ -1,0 +1,62 @@
+[
+    {
+        "content": "You're all getting D in your calculus Exam!",
+        "id": "68bc5fc8cd8d68664a8220fb",
+        "isEdited": false,
+        "messageType": "text",
+        "roomId": "68bc5cbbcd8d68664a8220fa",
+        "senderId": "689bc8aa7c22f772ede9f134",
+        "senderName": "Kwame Piesie",
+        "timestamp": "2025-09-06T16:22:32.635Z"
+    },
+    {
+        "content": "Hi! I'm Olaf and I like warm hugs!!",
+        "id": "68bc6b31cff035a618849d72",
+        "isEdited": false,
+        "messageType": "text",
+        "roomId": "68bc5cbbcd8d68664a8220fa",
+        "senderId": "689bc8aa7c22f772ede9f134",
+        "senderName": "Kwame Piesie",
+        "timestamp": "2025-09-06T17:11:12.793Z"
+    },
+    {
+        "content": "Now...!",
+        "id": "68be14cb2c89f0a9147145ee",
+        "isEdited": false,
+        "messageType": "text",
+        "roomId": "68bc5cbbcd8d68664a8220fa",
+        "senderId": "689bc8aa7c22f772ede9f134",
+        "senderName": "Kwame Piesie",
+        "timestamp": "2025-09-07T23:27:07.067Z"
+    },
+    {
+        "content": "Bibeong!!",
+        "id": "68be23cda7fe6f32f27eafa1",
+        "isEdited": false,
+        "messageType": "text",
+        "roomId": "68bc5cbbcd8d68664a8220fa",
+        "senderId": "689bc8aa7c22f772ede9f134",
+        "senderName": "Kwame Piesie",
+        "timestamp": "2025-09-08T00:31:09.072Z"
+    },
+    {
+        "content": "So this should work!",
+        "id": "68be2740a7fe6f32f27eafa2",
+        "isEdited": false,
+        "messageType": "text",
+        "roomId": "68bc5cbbcd8d68664a8220fa",
+        "senderId": "689bc8aa7c22f772ede9f134",
+        "senderName": "Kwame Piesie",
+        "timestamp": "2025-09-08T00:45:52.149Z"
+    },
+    {
+        "content": "😞😞😞",
+        "id": "68be30fb041d123db1047012",
+        "isEdited": false,
+        "messageType": "text",
+        "roomId": "68bc5cbbcd8d68664a8220fa",
+        "senderId": "689bc8aa7c22f772ede9f134",
+        "senderName": "Kwame Piesie",
+        "timestamp": "2025-09-08T01:27:23.112Z"
+    }
+]

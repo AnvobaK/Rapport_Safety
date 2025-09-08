@@ -18,7 +18,7 @@ export function GlobalChatProvider({ children }) {
     },
   ]);
 
-  // Refactored: addMessage now takes userId
+  // Refactored: addMessage to now take a userId
   const addMessage = (
     text,
     userId,
