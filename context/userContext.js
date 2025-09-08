@@ -5,8 +5,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const [profileImage, setProfileImage] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    birthDate: "",
+    phone: "",
+    address: "",
+    institution: "",
+    indexNumber: "",
+  });
+  const [profileImage, setProfileImage] = useState(null);
 
   // Load userId from storage when the app starts
   useEffect(() => {
@@ -24,41 +34,33 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-
-    const getUserId = async () => {
+    const fetchUserProfile = async () => {
+      if (!userId) return;
+      
       try {
-        const requestOptions = {
-          method: "GET",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({
-            "userId": userId
-          })
-        }
         const response = await fetch(
-          `https://rapport-backend.onrender.com/auth/single`,
-          requestOptions
+          `https://rapport-backend.onrender.com/auth/single/${userId}`,
         );
-        const data = await response.json();
-        setProfileData(data);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const userData = await response.json();
+        
+        if (userData) {
+          setProfileData(prevData => ({
+            ...prevData,
+            ...userData
+          }));
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
+    };
 
-      getUserId()
-    }
+    fetchUserProfile();
   }, [userId]);
-
-  // Add all profile data to context
-  const [profileData, setProfileData] = useState({
-    firstName: "Seline",
-    lastName: "Niel",
-    email: "selineniel@gmail.com",
-    birthDate: "",
-    phone: "463252653",
-    address: "St. Theresas Hostel",
-    institution: "College of Science",
-    indexNumber: "352434",
-  });
 
   // Function to update profile data
   const updateProfileData = (newData) => {

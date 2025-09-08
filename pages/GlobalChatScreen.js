@@ -29,34 +29,38 @@ const GlobalChatScreen = ({ navigation }) => {
   const { userId } = userContext;
   const [input, setInput] = useState("");
   const [sound, setSound] = useState(null);
-  const [chats, setChats] = useState([])
+  const [chats, setChats] = useState([]);
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoModal, setVideoModal] = useState({ visible: false, uri: null });
   const [showMediaOptions, setShowMediaOptions] = useState(false);
   const flatListRef = useRef(null);
 
-  const socket = new WebSocket(`ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`)
+  const socket = new WebSocket(
+    `ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`
+  );
 
   useEffect(() => {
-
-    const getCommunityChats = async() => {
+    const getCommunityChats = async () => {
       try {
         const response = await fetch(
           "https://rapport-backend.onrender.com/chat/community"
-        )
+        );
 
         const data = await response.json();
-        console.log("Chats in database:", data)
-        setChats(data)
+        console.log("Chats in database:", data);
+        setChats(data);
       } catch (error) {
-        console.error('Error fetching community chats:', error);
-        Alert.alert("Error", "Failed to fetch community chat. Please try again.");
+        console.error("Error fetching community chats:", error);
+        Alert.alert(
+          "Error",
+          "Failed to fetch community chat. Please try again."
+        );
       }
-    }
+    };
 
-    getCommunityChats()
-  }, [])
+    getCommunityChats();
+  }, []);
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
@@ -80,28 +84,54 @@ const GlobalChatScreen = ({ navigation }) => {
 
   const handleSend = async () => {
     try {
-      const requestOptions = {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          "roomId": "68bc5cbbcd8d68664a8220fa",
-          "senderId": userId,
-          "senderName": getMyName(),
-          "content": input,
-          "messageType": "text"
-        })
-      }
-      if (input.trim()) {
-        addMessage(input.trim(), userId, true, "text");
+      // Get the latest profile data
+      const { profileData } = userContext;
+      
+      // Ensure we have valid user data
+      if (!profileData || !profileData.firstName) {
+        console.warn("User profile data not loaded yet");
+        return;
       }
 
-      await fetch("https://rapport-backend-onrender.com/chat/message/send")
+      const senderName = `${profileData.firstName} ${profileData.lastName || ''}`.trim();
       
+      const requestOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId: "68bc5cbbcd8d68664a8220fa",
+          senderId: userId,
+          senderName: senderName,
+          content: input,
+          messageType: "text",
+        }),
+      };
+      
+      if (input.trim()) {
+        // Add message to local state
+        addMessage(
+          input.trim(),  // text
+          userId,        // userId
+          true,          // isMe
+          "text",        // type
+          null           // media
+        );
+        
+        // Clear input field
+        setInput("");
+      }
+
+      const res = await fetch(
+        "https://rapport-backend.onrender.com/chat/message/send", requestOptions
+      );
+
+      console.log(res)
+
       setInput("");
     } catch (error) {
       alert("Error", "Failed to send message. Please try again.");
-      console.error("Err:",error)
-      return
+      console.log("Err:", error);
+      return;
     }
   };
 
