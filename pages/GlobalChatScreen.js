@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import React,{ useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -13,9 +13,9 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import { Audio, Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Audio, Video } from "expo-av";
 import {
   useGlobalChat,
   SYSTEM_USER_ID,
@@ -24,17 +24,17 @@ import {
 import { useUserContext } from "../context/userContext";
 
 const GlobalChatScreen = ({ navigation }) => {
-  const { messages, addMessage } = useGlobalChat();
   const userContext = useUserContext();
   const { userId } = userContext;
+  const flatListRef = useRef(null);
   const [input, setInput] = useState("");
-  const [sound, setSound] = useState(null);
   const [chats, setChats] = useState([]);
+  const [sound, setSound] = useState(null);
+  const { messages, addMessage } = useGlobalChat();
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoModal, setVideoModal] = useState({ visible: false, uri: null });
   const [showMediaOptions, setShowMediaOptions] = useState(false);
-  const flatListRef = useRef(null);
 
   const socket = new WebSocket(
     `ws://rapport-backend-onrender.com/ws?userId=${userId}&roomId=68bc5cbbcd8d68664a8220fa`
