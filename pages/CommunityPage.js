@@ -640,6 +640,22 @@ const CommunityPage = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
+          onPress={() =>
+            navigation.navigate("ChatScreen", {
+              contact: {
+                id:
+                  post.user.handle ||
+                  String(post.user.name).toLowerCase().replace(/\s+/g, "-"),
+                name: post.user.name,
+                avatar: post.user.avatar,
+              },
+            })
+          }
+        >
+          <Ionicons name="mail-outline" size={20} color={theme.secondaryIcon} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => handleShare(post)}
         >
           <Ionicons

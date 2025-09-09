@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute } from "@react-navigation/core";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useChats } from "../context/ChatsContext";
 import { useGroups } from "../context/GroupsContext";
 import { useUserPreferences } from "../context/UserPreferencesContext";
@@ -124,7 +124,14 @@ const InitialChatScreen = () => {
       onLongPress={() => handleChatLongPress(item)}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: item.avatar }} style={styles.chatAvatar} />
+      <Image
+        source={
+          typeof item.avatar === 'string'
+            ? { uri: item.avatar }
+            : item.avatar
+        }
+        style={styles.chatAvatar}
+      />
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
           <Text style={[styles.chatName, { color: theme.primaryText }]}>

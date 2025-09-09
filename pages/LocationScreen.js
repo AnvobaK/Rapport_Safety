@@ -104,7 +104,20 @@ const LocationScreen = ({ navigation }) => {
     })();
   }, []);
 
-  // Search for places using Nominatim
+  // Helper: safe JSON fetch that guards against HTML error pages and non-200s
+  const fetchJsonSafe = async (url, options = {}) => {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    if (!contentType.includes("application/json")) {
+      throw new Error("Non-JSON response");
+    }
+    return response.json();
+  };
+
+  // Search for places: try Nominatim first (with headers), fallback to Mapbox Geocoding
   const searchPlaces = async (query) => {
     if (!query || query.length < 3) {
       setSearchResults([]);
@@ -114,16 +127,39 @@ const LocationScreen = ({ navigation }) => {
 
     setSearchLoading(true);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
         query
-      )}&limit=5`;
-      const response = await fetch(url);
-      const data = await response.json();
-      setSearchResults(data);
+      )}&limit=5&addressdetails=0`;
+      const nominatimData = await fetchJsonSafe(nominatimUrl, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "RapportSafetyApp/1.0 (support@rapport.app)",
+          Referer: "https://rapport.app",
+        },
+      });
+      setSearchResults(nominatimData);
       setShowSearchResults(true);
-    } catch (error) {
-      console.error("Search error:", error);
-      setSearchResults([]);
+    } catch (err) {
+      try {
+        const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          query
+        )}.json?access_token=${MAPBOX_API_KEY}&limit=5&types=poi,address,place,locality,neighborhood`;
+        const mapboxData = await fetchJsonSafe(mapboxUrl);
+        const mapped = Array.isArray(mapboxData.features)
+          ? mapboxData.features.map((f) => ({
+              place_id: f.id || String(Date.now()),
+              display_name: f.place_name,
+              lat: f.center && f.center.length === 2 ? f.center[1] : null,
+              lon: f.center && f.center.length === 2 ? f.center[0] : null,
+            }))
+          : [];
+        setSearchResults(mapped);
+        setShowSearchResults(true);
+      } catch (fallbackErr) {
+        console.error("Search error (both providers failed):", fallbackErr);
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
     } finally {
       setSearchLoading(false);
     }
@@ -181,10 +217,8 @@ const LocationScreen = ({ navigation }) => {
       coordsArr.push(`${to.longitude},${to.latitude}`);
       const url = `https://api.mapbox.com/directions/v5/mapbox/${mode}/${coordsArr.join(
         ";"
-      )}?geometries=geojson&alternatives=true&access_token=${MAPBOX_API_KEY}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to fetch route");
-      const data = await response.json();
+      )}?geometries=geojson&alternatives=true&overview=full&access_token=${MAPBOX_API_KEY}`;
+      const data = await fetchJsonSafe(url);
       if (!data.routes || !data.routes.length)
         throw new Error("No route found");
       setRoutes(data.routes);
