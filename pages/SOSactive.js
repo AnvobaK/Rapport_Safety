@@ -3,15 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   SafeAreaView,
+  TouchableOpacity,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import LottieView from "lottie-react-native";
 
 const SOSActiveScreen = () => {
   const [activated, setActivated] = useState(true);
-  const navigation = useNavigation();
 
   const handleSOSPress = () => {
     setActivated(true);
@@ -47,15 +45,13 @@ const SOSActiveScreen = () => {
           <View style={styles.safeWordContainer}>
             <View style={styles.safeWordHeader}>
               <Text style={styles.safeWordTitle}>
-                Your safe word has been detected
+                The alert has been sent
               </Text>
             </View>
 
             <View style={styles.infoContainer}>
               <Text style={styles.infoText}>
-                We've gathered your current location and{"\n"}report details,
-                and they have been{"\n"}securely sent to a pre-designated safety
-                {"\n"}proxy.
+              We've gathered your current location and report details, and they have been securely sent to a pre-designated safety proxy.
               </Text>
             </View>
           </View>
@@ -124,7 +120,7 @@ const styles = StyleSheet.create({
   safeWordHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 4,
   },
   safeWordTitle: {
     color: "#98C84A",
@@ -136,6 +132,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     flexDirection: "row",
+    marginTop: 8,
     alignItems: "flex-start",
   },
   infoText: {

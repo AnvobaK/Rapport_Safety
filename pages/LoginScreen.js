@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useUserContext, updateProfileData } from "../context/userContext";
+import { useUserContext } from "../context/userContext";
 import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {

@@ -1,104 +1,87 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Platform,
-  Dimensions,
-  PermissionsAndroid,
   SafeAreaView,
+  TouchableOpacity,
+  ActivityIndicator
 } from "react-native";
+import * as Location from "expo-location";
 import { getTheme } from "../context/theme";
 import LottieView from "lottie-react-native";
 import { Ionicons, Entypo } from "@expo/vector-icons";
+import { useUserContext } from "../context/userContext";
 import { useNavigation } from "@react-navigation/native";
 import { useUserPreferences } from "../context/UserPreferencesContext";
-import { Porcupine, PorcupineManager, PorcupineErrors } from "@picovoice/porcupine-react-native";
 
 const SOSScreen = () => {
-  const [activated, setActivated] = useState(true);
   const { isDarkMode } = useUserPreferences();
   const theme = getTheme(isDarkMode);
   const navigation = useNavigation();
-
-  const ACCESS_KEY = "SWb1iriZG9JvmlQTCJGbaK5cvrkdop15NBsutNJylFzYjgAdpDiDZg==";
-
-    useEffect(() => {
-      let porcupine = null;
-
-      const initializePorcupine = async () => {
-        try {
-          this._porcupineManager = await PorcupineManager.fromKeywordPaths(
-            ACCESS_KEY
-            ["assets/keywords/Blueberry_en_android_v3_0_0.ppn"],
-          );
-        if (Platform.OS === "android") {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-            {
-              title: "Microphone Permission",
-              message:
-                "This app needs access to your microphone for wake word detection",
-              buttonNeutral: "Ask Me Later",
-              buttonNegative: "Cancel",
-              buttonPositive: "Ok",
-            }
-          );
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            throw new Error("Microphone permissions denied");
-          }
-        }
-
-        const keywordPath = Platform.select({
-          ios: "Blueberry_en_ios_v3_0_0.ppn", // Make sure this file exists for iOS
-          android: "assets/keywords/Blueberry_en_android_v3_0_0.ppn",
-        });
-
-        porcupine = await Porcupine.fromKeywordPaths(
-          ACCESS_KEY,
-          [keywordPath],
-          [0.5]
-        );
-
-        if (!porcupine) {
-          throw new Error("Failed to create Porcupine instance");
-        }
-
-        porcupine.addListener(async (keywordIndex) => {
-          console.log(`Wake word detected: ${keywordIndex}`);
-          setWakeWordDetected(true);
-        });
-
-        porcupine.addListener((error) => {
-          console.error("Porcupine error:", error);
-          setError(error.message);
-        });
-
-        await VoiceProcessor.startAudioRecording(porcupine);
-        setIsListening(true);
-      } catch (err) {
-        console.error("Failed to initialize porcupine:", err);
+  const { userId } = useUserContext();
+  const [activated, setActivated] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const getLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to send your location with the SOS alert.');
+        return null;
       }
-    };
-
-    initializePorcupine();
-    return async () => {
-      if (porcupine) {
-        try {
-          await VoiceProcessor.stopAudioRecording();
-          porcupine.removeAllListeners();
-          await porcupine.delete();
-        } catch (err) {
-          console.error("Error during cleanup:", err);
-        }
-      }
-    };
-  }, []);
-
-  const handleSOSPress = () => {
-    setActivated(true);
+      
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      return location.coords;
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not get your location. Please try again.');
+      return null;
+    }
   };
+
+  const handleSOSPress = async () => {
+   try {
+     setActivated(true);
+      setIsLoading(true)
+      
+      // Get current location
+      const coords = await getLocation();
+      
+      if (!coords) {
+        Alert.alert('Warning', 'Could not get your location. Alert will be sent without location data.');
+      }
+       const reqOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          location: coords ? {
+            latitude: coords.latitude,
+            longitude: coords.longitude
+          } : null
+        })
+      };
+       const res = await fetch('https://rapport-backend.onrender.com/mail/sos', reqOptions);
+      
+      if (!res.ok) {
+        throw new Error('Failed to send SOS alert');
+      }
+      
+      const data = await res.json();
+      console.log('SOS alert sent successfully:', data);
+      
+    } catch (error) {
+      console.error('Error sending SOS alert:', error);
+      Alert.alert('Error', 'Failed to send SOS alert. Please try again.');
+    } finally {
+      setIsLoading(false)
+    }
+    navigation.navigate("SOSActive")
+  };
+  
 
   return (
     <SafeAreaView
@@ -140,37 +123,23 @@ const SOSScreen = () => {
             ]}
           >
             <View style={styles.safeWordHeader}>
-              <Ionicons name="mic" size={20} color={theme.accentIcon} />
+              <Ionicons name="call" size={20} color={theme.accentIcon} />
               <Text
                 style={[styles.safeWordTitle, { color: theme.primaryText }]}
               >
-                Your Safe Word
+                Press For Help!
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.safeWordBox,
-                { backgroundColor: theme.secondaryBackground },
-              ]}
-            >
-              <Text style={[styles.safeWordText, { color: theme.primaryText }]}>
-                Your safe word is{" "}
-                <Text
-                  style={[styles.blueberryText, { color: theme.accentText }]}
-                >
-                  Blueberry
-                </Text>
-              </Text>
-            </View>
+            {isLoading && <ActivityIndicator />}
 
             <View style={styles.warningContainer}>
               <Ionicons name="alert-circle" size={20} color={theme.error} />
               <Text
                 style={[styles.warningText, { color: theme.secondaryText }]}
               >
-                When this word is recorded, a message containing your general
-                details will be sent to security services.
+                When this button is pressed, a message containing your general
+                details will be sent to the various security services.
               </Text>
             </View>
           </View>
