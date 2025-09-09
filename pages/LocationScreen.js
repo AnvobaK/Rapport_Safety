@@ -12,7 +12,6 @@ import {
   TextInput,
   FlatList,
   ScrollView,
-  Platform,
 } from "react-native";
 import HeaderWithBack from "../components/Headerwithbackbutton";
 import MapView, {

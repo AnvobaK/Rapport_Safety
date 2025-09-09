@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -14,49 +14,41 @@ import { useUserContext } from "../context/userContext";
 import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const navigation = useNavigation();
   const { setUserId } = useUserContext();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = () => {
     console.log("Login with:", username, password);
 
     const requestOptions = {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        "usernameOrEmail": username,
-        "password": password
-      })
-    }
+        usernameOrEmail: username,
+        password: password,
+      }),
+    };
 
-    setIsLoading(true)
-    fetch(
-      `https://rapport-backend.onrender.com/auth/login`,
-      requestOptions
-    )
+    setIsLoading(true);
+    fetch(`https://rapport-backend.onrender.com/auth/login`, requestOptions)
       .then((response) => response.json())
       .then((data) => {
         console.log(data);
-        // Store the user ID from the response
-        if (data.userId) {
-          setUserId(data.userId);
-        } else if (data._id) { // In case the ID is in _id field
+        if (data._id) {
           setUserId(data._id);
-        } else if (data.data?._id) { // If the response is nested in data object
-          setUserId(data.data._id);
+          navigation.navigate("MainTabNavigator");
         }
-        navigation.navigate("MainTabNavigator");
       })
       .catch((error) => {
         alert("Login Failed", error.message);
         console.error("Error:", error);
       })
       .finally(() => {
-        setIsLoading(false)
-      })
+        setIsLoading(false);
+      });
   };
 
   const handleForgotPassword = () => {
@@ -109,13 +101,10 @@ export default function LoginScreen() {
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
-            >
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
-            {isLoading && <ActivityIndicator/>}
+            {isLoading && <ActivityIndicator />}
           </View>
 
           {/* Sign Up */}

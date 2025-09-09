@@ -3,25 +3,85 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Dimensions,
   SafeAreaView,
+  TouchableOpacity,
+  ActivityIndicator
 } from "react-native";
-import { Ionicons, Entypo } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { useUserPreferences } from "../context/UserPreferencesContext";
+import * as Location from "expo-location";
 import { getTheme } from "../context/theme";
 import LottieView from "lottie-react-native";
+import { Ionicons, Entypo } from "@expo/vector-icons";
+import { useUserContext } from "../context/userContext";
+import { useNavigation } from "@react-navigation/native";
+import { useUserPreferences } from "../context/UserPreferencesContext";
 
 const SOSScreen = () => {
-  const [activated, setActivated] = useState(true);
   const { isDarkMode } = useUserPreferences();
   const theme = getTheme(isDarkMode);
   const navigation = useNavigation();
-
-  const handleSOSPress = () => {
-    setActivated(true);
+  const { userId } = useUserContext();
+  const [activated, setActivated] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const getLocation = async () => {
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to send your location with the SOS alert.');
+        return null;
+      }
+      
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      return location.coords;
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not get your location. Please try again.');
+      return null;
+    }
   };
+
+  const handleSOSPress = async () => {
+   try {
+     setActivated(true);
+      setIsLoading(true)
+      
+      // Get current location
+      const coords = await getLocation();
+      
+      if (!coords) {
+        Alert.alert('Warning', 'Could not get your location. Alert will be sent without location data.');
+      }
+       const reqOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          location: coords ? {
+            latitude: coords.latitude,
+            longitude: coords.longitude
+          } : null
+        })
+      };
+       const res = await fetch('https://rapport-backend.onrender.com/mail/sos', reqOptions);
+      
+      if (!res.ok) {
+        throw new Error('Failed to send SOS alert');
+      }
+      
+      const data = await res.json();
+      console.log('SOS alert sent successfully:', data);
+      
+    } catch (error) {
+      console.error('Error sending SOS alert:', error);
+      Alert.alert('Error', 'Failed to send SOS alert. Please try again.');
+    } finally {
+      setIsLoading(false)
+    }
+    navigation.navigate("SOSActive")
+  };
+  
 
   return (
     <SafeAreaView
@@ -63,37 +123,23 @@ const SOSScreen = () => {
             ]}
           >
             <View style={styles.safeWordHeader}>
-              <Ionicons name="mic" size={20} color={theme.accentIcon} />
+              <Ionicons name="call" size={20} color={theme.accentIcon} />
               <Text
                 style={[styles.safeWordTitle, { color: theme.primaryText }]}
               >
-                Your Safe Word
+                Press For Help!
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.safeWordBox,
-                { backgroundColor: theme.secondaryBackground },
-              ]}
-            >
-              <Text style={[styles.safeWordText, { color: theme.primaryText }]}>
-                Your safe word is{" "}
-                <Text
-                  style={[styles.blueberryText, { color: theme.accentText }]}
-                >
-                  Blueberry
-                </Text>
-              </Text>
-            </View>
+            {isLoading && <ActivityIndicator />}
 
             <View style={styles.warningContainer}>
               <Ionicons name="alert-circle" size={20} color={theme.error} />
               <Text
                 style={[styles.warningText, { color: theme.secondaryText }]}
               >
-                When this word is recorded, a message containing your general
-                details will be sent to security services.
+                When this button is pressed, a message containing your general
+                details will be sent to the various security services.
               </Text>
             </View>
           </View>
